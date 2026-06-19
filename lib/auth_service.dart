@@ -1,61 +1,93 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'db_service.dart';
 
+/// Manages authentication state using SQLite for credential storage
+/// and SharedPreferences for session persistence.
 class AuthService extends ChangeNotifier {
-  String? _token;
+  String? _email;
   String? _userName;
-  bool _isOffline = false;
+  bool    _isOffline = false;
 
-  bool get isLoggedIn => _token != null || _isOffline;
-  bool get isOffline  => _isOffline;
-  String get userName => _userName ?? 'Student';
+  bool   get isLoggedIn => _email != null || _isOffline;
+  bool   get isOffline  => _isOffline;
+  String get userName   => _userName ?? 'Student';
+  String get email      => _email ?? '';
 
-  AuthService() {
-    _restore();
-  }
+  AuthService() { _restore(); }
 
+  /// Restores session from SharedPreferences on app restart.
   Future<void> _restore() async {
     final prefs = await SharedPreferences.getInstance();
-    _token    = prefs.getString('auth_token');
-    _userName = prefs.getString('user_name');
+    _email     = prefs.getString('user_email');
+    _userName  = prefs.getString('user_name');
     _isOffline = prefs.getBool('offline_mode') ?? false;
     notifyListeners();
   }
 
-  /// Returns true on success.
-  /// Replace the mock below with a real API call for production.
-  Future<bool> login(String email, String password) async {
-    await Future.delayed(const Duration(seconds: 1)); // simulate network
-    if (email.isNotEmpty && password.length >= 6) {
-      _token    = 'token_${email.hashCode}';
-      _userName = email.split('@').first;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('auth_token', _token!);
-      await prefs.setString('user_name', _userName!);
-      notifyListeners();
-      return true;
-    }
-    return false;
+  /// Registers a new user in SQLite. Returns null on success,
+  /// or an error message string on failure.
+  Future<String?> register(
+      String name, String email, String password) async {
+    if (name.trim().isEmpty)     return 'Name is required';
+    if (!email.contains('@'))    return 'Invalid email address';
+    if (password.length < 6)     return 'Password must be at least 6 characters';
+
+    final ok = await DBService.instance.registerUser(
+        name.trim(), email.trim().toLowerCase(), password);
+    if (!ok) return 'Email already registered. Please sign in.';
+
+    // Auto-login after register
+    await _saveSession(name.trim(), email.trim().toLowerCase());
+    return null; // null = success
   }
 
-  Future<bool> register(String email, String password) async {
-    // Same mock — swap for real API
-    return login(email, password);
+  /// Validates credentials against SQLite users table.
+  /// Returns null on success or an error message string.
+  Future<String?> login(String email, String password) async {
+    if (email.isEmpty)    return 'Email is required';
+    if (password.isEmpty) return 'Password is required';
+
+    final user = await DBService.instance.loginUser(
+        email.trim().toLowerCase(), password);
+    if (user == null) return 'Incorrect email or password';
+
+    await _saveSession(user['name'] as String, email.trim().toLowerCase());
+    return null;
   }
 
+  /// Saves the session to SharedPreferences so it persists on restart.
+  Future<void> _saveSession(String name, String email) async {
+    _userName  = name;
+    _email     = email;
+    _isOffline = false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_email', email);
+    await prefs.setString('user_name',  name);
+    await prefs.remove('offline_mode');
+    notifyListeners();
+  }
+
+  /// Allows the app to be used without an account.
   Future<void> continueOffline() async {
     _isOffline = true;
+    _email     = 'guest@offline';
+    _userName  = 'Guest';
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('offline_mode', true);
     notifyListeners();
   }
 
+  /// Logs the current user out and clears the session.
   Future<void> logout() async {
-    _token     = null;
+    if (_email != null && !_isOffline) {
+      await DBService.instance.logActivity(_email!, 'LOGOUT', 'Signed out');
+    }
+    _email     = null;
     _userName  = null;
     _isOffline = false;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
+    await prefs.remove('user_email');
     await prefs.remove('user_name');
     await prefs.remove('offline_mode');
     notifyListeners();

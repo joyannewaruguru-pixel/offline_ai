@@ -10,22 +10,12 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Local database (offline storage)
   sqflite: ^2.3.3
   path: ^1.9.0
-
-  # State management
   provider: ^6.1.2
-
-  # User settings / token storage
   shared_preferences: ^2.3.2
-
-  # HTTP client
   http: ^1.2.2
-
-
-  # Markdown rendering for lesson content
-  flutter_markdown: ^0.6.18
+  flutter_markdown: ^0.7.4
 
 dev_dependencies:
   flutter_test:
