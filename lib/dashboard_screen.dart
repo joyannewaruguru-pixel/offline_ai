@@ -1,18 +1,13 @@
-import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:offline_ai/screens/activity_screen.dart';
-import 'package:offline_ai/screens/crud_screen.dart';
-import 'package:offline_ai/services/api_user_screen.dart';
 import 'package:provider/provider.dart';
-
-import 'activity_screen.dart';
-import 'api_users_screen.dart';
-import 'auth_service.dart';
 import 'course_model.dart';
-import 'crud_screen.dart';
+import 'auth_service.dart';
 import 'db_service.dart';
 import 'services/theme_service.dart';
+import 'services/time_service.dart';
+import 'services/api_user_screen.dart';
+import 'screens/crud_screen.dart';
+import 'screens/activity_screen.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ROOT SCAFFOLD — bottom nav + IndexedStack
@@ -84,9 +79,8 @@ class _HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<_HomeTab> {
   // Greeting state
-  GreetingInfo?      _greeting;
-  bool               _greetLoading = true;
-  Timer?             _greetTimer;
+  GreetingInfo?  _greeting;
+  bool          _greetLoading = true;
 
   // Search state
   final TextEditingController _searchCtrl = TextEditingController();
@@ -103,8 +97,6 @@ class _HomeTabState extends State<_HomeTab> {
     _filtered = widget.courses;
     _loadGreeting();
     _loadStats();
-    // Refresh every 60 s so it changes at noon/evening without restart
-    _greetTimer = Timer.periodic(const Duration(minutes: 1), (_) => _loadGreeting());
   }
 
   @override
@@ -117,32 +109,29 @@ class _HomeTabState extends State<_HomeTab> {
   }
 
   @override
-  void dispose() {
-    _greetTimer?.cancel();
-    _searchCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _searchCtrl.dispose(); super.dispose(); }
 
   // ── loaders ──────────────────────────────────────────────────────────────
 
   Future<void> _loadGreeting() async {
     // TimeService.getGreeting() calls WorldTimeAPI or falls back to device
-    try {
-      final info = await TimeService.instance.getGreeting();
-      if (mounted) setState(() { _greeting = info; _greetLoading = false; });
-    } catch (e) {
-      debugPrint('Error loading greeting: $e');
-    }
+    final GreetingInfo info = await TimeService.instance.getGreeting();
+    if (mounted) setState(() { _greeting = info; _greetLoading = false; });
+    // Refresh every 60 s so it changes at noon/evening without restart
+    await Future.delayed(const Duration(minutes: 1));
+    if (mounted) _loadGreeting();
   }
 
   Future<void> _loadStats() async {
     final Map<String, String> prog =
     await DBService.instance.getUserProgress();
-    if (mounted) setState(() {
-      _streak      = prog['streak']       ?? '0';
-      _lessonsDone = prog['lessons_done'] ?? '0';
-      _quizAvg     = '${prog['quiz_avg'] ?? '0'}%';
-    });
+    if (mounted) {
+      setState(() {
+        _streak = prog['streak'] ?? '0';
+        _lessonsDone = prog['lessons_done'] ?? '0';
+        _quizAvg = '${prog['quiz_avg'] ?? '0'}%';
+      });
+    }
   }
 
   void _onSearch(String q) {
@@ -162,8 +151,6 @@ class _HomeTabState extends State<_HomeTab> {
   Widget build(BuildContext context) {
     final double w   = MediaQuery.of(context).size.width;
     final double pad = w > 600 ? 32.0 : 20.0;
-    final bool isDark =
-        Theme.of(context).brightness == Brightness.dark;
 
     // Greeting colours — update AppBar gradient when greeting loads
     final Color bgTop =
@@ -226,7 +213,7 @@ class _HomeTabState extends State<_HomeTab> {
               children: [
                 // Greeting text or shimmer
                 _greetLoading
-                    ? _Shimmer(width: 200, height: 22)
+                    ? const _Shimmer(width: 200, height: 22)
                     : Text(
                     '${_greeting!.greeting} ${_greeting!.emoji}',
                     style: const TextStyle(
@@ -293,6 +280,13 @@ class _HomeTabState extends State<_HomeTab> {
                         MaterialPageRoute(
                             builder: (_) => const ActivityScreen())))),
               ]),
+              const SizedBox(height: 8),
+              _WeekBannerLink(
+                week: '8',
+                title: 'Gestures & Keyboard Input',
+                subtitle: 'Tap · Swipe · Long press · OOP class structure',
+                onTap: () => Navigator.pushNamed(context, '/gesture-demo'),
+              ),
               const SizedBox(height: 22),
 
               // Continue learning
@@ -343,26 +337,6 @@ class _HomeTabState extends State<_HomeTab> {
   }
 }
 
-class TimeService {
-  TimeService._();
-  static final TimeService instance = TimeService._();
-
-  Future<GreetingInfo> getGreeting() async {
-    // Dummy implementation
-    await Future.delayed(const Duration(milliseconds: 500));
-    return GreetingInfo();
-  }
-}
-
-class GreetingInfo {
-  Color get bgTop => const Color(0xFF1D9E75);
-  Color get bgBottom => const Color(0xFF15785A);
-  IconData get greetIcon => Icons.wb_sunny_outlined;
-  String get greeting => 'Good day';
-  String get emoji => '👋';
-  String get subtext => 'Ready to learn?';
-}
-
 // ═════════════════════════════════════════════════════════════════════════════
 // LIVE CLOCK — ticks every second
 // ═════════════════════════════════════════════════════════════════════════════
@@ -375,38 +349,31 @@ class _LiveClock extends StatefulWidget {
 
 class _LiveClockState extends State<_LiveClock> {
   DateTime _now = DateTime.now();
-  Timer?   _timer;
-
-  static const _days = [
-    '', 'Monday', 'Tuesday', 'Wednesday',
-    'Thursday', 'Friday', 'Saturday', 'Sunday'
-  ];
-  static const _months = [
-    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ];
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
+    _tick();
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Future<void> _tick() async {
+    await Future.delayed(const Duration(seconds: 1));
+    if (mounted) { setState(() => _now = DateTime.now()); _tick(); }
   }
 
   String _p(int n) => n.toString().padLeft(2, '0');
 
   @override
   Widget build(BuildContext context) {
+    const days = [
+      '', 'Monday','Tuesday','Wednesday',
+      'Thursday','Friday','Saturday','Sunday'];
+    const months = [
+      '', 'Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec'];
     return Text(
         '${_p(_now.hour)}:${_p(_now.minute)}:${_p(_now.second)}'
-            '  ·  ${_days[_now.weekday]} ${_now.day} ${_months[_now.month]} ${_now.year}',
+            '  ·  ${days[_now.weekday]} ${_now.day} ${months[_now.month]} ${_now.year}',
         style: TextStyle(
             color: widget.color, fontSize: 12,
             fontFeatures: const [FontFeature.tabularFigures()]));
@@ -448,7 +415,7 @@ class _ShimmerState extends State<_Shimmer>
       builder: (_, __) => Container(
           width: widget.width, height: widget.height,
           decoration: BoxDecoration(
-              color: Colors.white.withOpacity(_anim.value),
+              color: Colors.white.withValues(alpha: _anim.value),
               borderRadius: BorderRadius.circular(6))));
 }
 
@@ -468,7 +435,7 @@ class _StatCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
             color: isDark
-                ? const Color(0xFF1D9E75).withOpacity(0.15)
+                ? const Color(0xFF1D9E75).withValues(alpha: 0.15)
                 : const Color(0xFFE1F5EE),
             borderRadius: BorderRadius.circular(12)),
         child: Column(children: [
@@ -555,7 +522,7 @@ class _ContinueCard extends StatelessWidget {
                 color: isDark ? const Color(0xFF1C1F26) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                    color: const Color(0xFF1D9E75).withOpacity(0.3))),
+                    color: const Color(0xFF1D9E75).withValues(alpha: 0.3))),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
@@ -613,7 +580,7 @@ class _CourseRow extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                     color: (!done && course.progress > 0)
-                        ? const Color(0xFF1D9E75).withOpacity(0.3)
+                        ? const Color(0xFF1D9E75).withValues(alpha: 0.3)
                         : isDark
                         ? const Color(0xFF2C2F3A)
                         : const Color(0xFFE5E7EB))),
@@ -652,6 +619,60 @@ class _CourseRow extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 11, color: Color(0xFF1D9E75),
                             fontWeight: FontWeight.w600))),
+            ])));
+  }
+}
+
+
+// ═════════════════════════════════════════════════════════════════════════════
+// WEEK BANNER LINK — full-width card linking to a week demo
+// ═════════════════════════════════════════════════════════════════════════════
+class _WeekBannerLink extends StatelessWidget {
+  final String week;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _WeekBannerLink({
+    required this.week, required this.title,
+    required this.subtitle, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const green      = Color(0xFF1D9E75);
+    const greenLight = Color(0xFFE1F5EE);
+    return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1C1F26) : greenLight,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: green.withValues(alpha: 0.35))),
+            child: Row(children: [
+              Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(
+                      color: green,
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Center(
+                      child: Text('W$week',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)))),
+              const SizedBox(width: 12),
+              Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
+                    Text(subtitle, style: const TextStyle(
+                        fontSize: 12, color: Color(0xFF6B7280))),
+                  ])),
+              const Icon(Icons.arrow_forward_ios,
+                  size: 14, color: Color(0xFF6B7280)),
             ])));
   }
 }
@@ -697,7 +718,7 @@ class _NetworkTab extends StatelessWidget {
                       decoration: BoxDecoration(
                           color: greenLight,
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: green.withOpacity(0.3))),
+                          border: Border.all(color: green.withValues(alpha: 0.3))),
                       child: const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -730,10 +751,10 @@ class _NetworkTab extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                          color: (r[2] as Color).withOpacity(0.08),
+                          color: (r[2] as Color).withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                              color: (r[2] as Color).withOpacity(0.25))),
+                              color: (r[2] as Color).withValues(alpha: 0.25))),
                       child: Row(children: [
                         const Icon(Icons.schedule, size: 16),
                         const SizedBox(width: 8),
@@ -782,8 +803,8 @@ class _ProfileTab extends StatelessWidget {
         'route': ''},
       {'label': 'CRUD Module Manager',  'icon': Icons.table_rows_outlined,
         'route': '/crud'},
-      {'label': 'Downloaded content',   'icon': Icons.download_outlined,
-        'route': ''},
+      {'label': 'Quiz History',         'icon': Icons.quiz_outlined,
+        'route': '/quiz-history'},
       {'label': 'Settings',             'icon': Icons.settings_outlined,
         'route': ''},
     ];
@@ -833,7 +854,7 @@ class _ProfileTab extends StatelessWidget {
                     Switch(
                         value: themeServ.isDark,
                         onChanged: (_) => themeServ.toggle(),
-                        activeColor: green),
+                        activeThumbColor: green),
                   ])),
 
               // Menu items

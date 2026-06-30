@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../course_model.dart';
 import '../db_service.dart';
-import '../models/course_model.dart';
-import '../services/db_service.dart';
 
 /// Week 4 assignment — demonstrates full CRUD on the courses table.
 /// Add a new module, edit its title/subtitle, delete it,

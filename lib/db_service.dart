@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/course_model.dart';
-import '../models/lesson_model.dart';
 import 'course_model.dart';
 import 'lesson_model.dart';
 

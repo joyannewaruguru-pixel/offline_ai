@@ -47,11 +47,16 @@ class _AiTutorState extends State<AiTutorScreen> {
 
     try {
       final reply = await _callAPI(t);
-      if (mounted) setState(() => _msgs.add(_Msg(ai: true, text: reply)));
+      if (mounted) {
+        setState(() => _msgs.add(_Msg(ai: true, text: reply)));
+      }
     } catch (_) {
-      if (mounted) setState(() => _msgs.add(_Msg(ai: true,
-          text: 'Sorry, I couldn\'t reach the AI right now. '
-              'Make sure you\'re connected to the internet.')));
+      if (mounted) {
+        setState(() => _msgs.add(const _Msg(
+            ai: true,
+            text: 'Sorry, I couldn\'t reach the AI right now. '
+                'Make sure you\'re connected to the internet.')));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
       _scrollDown();
@@ -242,8 +247,8 @@ class _AiTutorState extends State<AiTutorScreen> {
   }
 
   Widget _buildBubble(_Msg m, BuildContext ctx) {
-    const _green      = Color(0xFF1D9E75);
-    const _greenLight = Color(0xFFE1F5EE);
+    const green      = Color(0xFF1D9E75);
+    const greenLight = Color(0xFFE1F5EE);
 
     return Align(
       alignment: m.ai ? Alignment.centerLeft : Alignment.centerRight,
@@ -253,7 +258,7 @@ class _AiTutorState extends State<AiTutorScreen> {
             maxWidth: MediaQuery.of(ctx).size.width * 0.78),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: m.ai ? _greenLight : _green,
+          color: m.ai ? greenLight : green,
           borderRadius: BorderRadius.only(
             topLeft:     const Radius.circular(14),
             topRight:    const Radius.circular(14),

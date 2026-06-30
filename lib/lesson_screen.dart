@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import '../models/lesson_model.dart';
-import '../services/db_service.dart';
 import 'db_service.dart';
 import 'lesson_model.dart';
 
