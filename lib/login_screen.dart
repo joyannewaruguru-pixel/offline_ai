@@ -53,11 +53,10 @@ class _LoginState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final green  = const Color(0xFF1D9E75);
+    const green  = Color(0xFF1D9E75);
     final muted  = isDark ? Colors.white38 : const Color(0xFF6B7280);
-    final error  = const Color(0xFFE24B4A);
+    const error  = Color(0xFFE24B4A);
 
     return Scaffold(
       body: SafeArea(
@@ -67,7 +66,6 @@ class _LoginState extends State<LoginScreen> {
             key: _formKey,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Center(child: Column(children: [
                     Container(
                         width: 64, height: 64,
@@ -85,7 +83,6 @@ class _LoginState extends State<LoginScreen> {
                   ])),
                   const SizedBox(height: 36),
 
-                  // Name field (register only)
                   if (_isReg) ...[
                     _label('Full name'),
                     TextFormField(
@@ -100,7 +97,6 @@ class _LoginState extends State<LoginScreen> {
                     const SizedBox(height: 14),
                   ],
 
-                  // Email
                   _label('Email address'),
                   TextFormField(
                       controller: _emailCtrl,
@@ -116,7 +112,6 @@ class _LoginState extends State<LoginScreen> {
                       autovalidateMode: AutovalidateMode.onUserInteraction),
                   const SizedBox(height: 14),
 
-                  // Password
                   _label('Password'),
                   TextFormField(
                       controller: _passCtrl,
@@ -139,30 +134,28 @@ class _LoginState extends State<LoginScreen> {
                     Align(alignment: Alignment.centerRight,
                         child: TextButton(
                             onPressed: () {},
-                            child: Text('Forgot password?',
+                            child: const Text('Forgot password?',
                                 style: TextStyle(
                                     color: green, fontSize: 12)))),
                   const SizedBox(height: 6),
 
-                  // Server error
                   if (_serverErr != null) ...[
                     Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                            color: error.withOpacity(0.08),
+                            color: error.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                                color: error.withOpacity(0.4))),
+                                color: error.withValues(alpha: 0.4))),
                         child: Row(children: [
-                          Icon(Icons.error_outline, color: error, size: 18),
+                          const Icon(Icons.error_outline, color: error, size: 18),
                           const SizedBox(width: 8),
                           Expanded(child: Text(_serverErr!,
-                              style: TextStyle(color: error, fontSize: 13))),
+                              style: const TextStyle(color: error, fontSize: 13))),
                         ])),
                     const SizedBox(height: 12),
                   ],
 
-                  // Submit
                   SizedBox(
                       width: double.infinity, height: 50,
                       child: ElevatedButton(
@@ -176,7 +169,6 @@ class _LoginState extends State<LoginScreen> {
                                   fontSize: 15, fontWeight: FontWeight.w500)))),
                   const SizedBox(height: 12),
 
-                  // Toggle
                   SizedBox(
                       width: double.infinity, height: 50,
                       child: OutlinedButton(
@@ -189,7 +181,6 @@ class _LoginState extends State<LoginScreen> {
                               : "Don't have an account? Register",
                               style: const TextStyle(fontSize: 13)))),
 
-                  // Divider
                   Padding(
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       child: Row(children: [
@@ -201,7 +192,6 @@ class _LoginState extends State<LoginScreen> {
                         const Expanded(child: Divider()),
                       ])),
 
-                  // Offline
                   InkWell(
                     onTap: () {
                       context.read<AuthService>().continueOffline();
@@ -218,7 +208,7 @@ class _LoginState extends State<LoginScreen> {
                                     ? const Color(0xFF2C2F3A)
                                     : const Color(0xFFE5E7EB))),
                         child: Row(children: [
-                          Icon(Icons.wifi_off_rounded, color: green),
+                          const Icon(Icons.wifi_off_rounded, color: green),
                           const SizedBox(width: 12),
                           Column(crossAxisAlignment: CrossAxisAlignment.start,
                               children: [

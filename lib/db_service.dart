@@ -4,9 +4,6 @@ import 'package:path/path.dart';
 import 'course_model.dart';
 import 'lesson_model.dart';
 
-/// Central SQLite database service — singleton.
-/// Handles: users, user_activity, courses, lessons, quiz_attempts,
-///          user_progress tables.
 class DBService {
   DBService._();
   static final DBService instance = DBService._();
@@ -16,8 +13,6 @@ class DBService {
 
   get counties => null;
 
-  get is_citizen => null;
-
   get county => null;
 
   get tax_rate => null;
@@ -25,6 +20,8 @@ class DBService {
   get amount => null;
 
   get gross => null;
+
+  get is_citizen => null;
 
   get salary => null;
 
@@ -34,37 +31,10 @@ class DBService {
 
   get conn => null;
 
-  get row => null;
-
   get result => null;
 
-  get phone => null;
+  get row => null;
 
-  get credentials => null;
-
-  get secret => null;
-
-  get ch => null;
-
-  get key => null;
-
-  get token => null;
-
-  get shortcode => null;
-
-  get password => null;
-
-  get passkey => null;
-
-  get timestamp => null;
-
-  get payload => null;
-
-  get data => null;
-
-  get res => null;
-
-  // ── Init ──────────────────────────────────────────────────────────────────
   Future<void> init() async {
     final dbPath = await getDatabasesPath();
     _db = await openDatabase(
@@ -76,7 +46,6 @@ class DBService {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Users — stores login credentials
     await db.execute('''
       CREATE TABLE users (
         id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +57,6 @@ class DBService {
       )
     ''');
 
-    // User activity log — every action tracked
     await db.execute('''
       CREATE TABLE user_activity (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,7 +67,6 @@ class DBService {
       )
     ''');
 
-    // Courses
     await db.execute('''
       CREATE TABLE courses (
         id        TEXT PRIMARY KEY,
@@ -110,7 +77,6 @@ class DBService {
       )
     ''');
 
-    // Lessons
     await db.execute('''
       CREATE TABLE lessons (
         id           TEXT PRIMARY KEY,
@@ -123,7 +89,6 @@ class DBService {
       )
     ''');
 
-    // Quiz attempts
     await db.execute('''
       CREATE TABLE quiz_attempts (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,7 +99,6 @@ class DBService {
       )
     ''');
 
-    // Misc user progress (streak, xp, etc.)
     await db.execute('''
       CREATE TABLE user_progress (
         key   TEXT PRIMARY KEY,
@@ -143,13 +107,11 @@ class DBService {
     ''');
   }
 
-  // ── SEED ──────────────────────────────────────────────────────────────────
   Future<void> _seedIfEmpty() async {
     final n = Sqflite.firstIntValue(
         await _db!.rawQuery('SELECT COUNT(*) FROM courses')) ?? 0;
     if (n > 0) return;
 
-    // ── Courses ─────────────────────────────────────────────────────────────
     final courses = [
       {'id':'week1','title':'Intro to Mobile Dev',
         'subtitle':'Week 1 · Flutter setup','progress':1.0,
@@ -175,12 +137,21 @@ class DBService {
       {'id':'networks','title':'Computer Networks',
         'subtitle':'Networking · Kenya infrastructure','progress':0.0,
         'icon_code':Icons.router_outlined.codePoint},
+      {'id':'week9','title':'Device Features',
+        'subtitle':'Week 9 · Camera, GPS & Sensors','progress':0.0,
+        'icon_code':Icons.camera_alt_outlined.codePoint},
+      {'id':'week10','title':'Testing & UX',
+        'subtitle':'Week 10 · Integration & Testing','progress':0.0,
+        'icon_code':Icons.fact_check_outlined.codePoint},
+      {'id':'week11','title':'Deployment',
+        'subtitle':'Week 11 · Publishing to Store','progress':0.0,
+        'icon_code':Icons.rocket_launch_outlined.codePoint},
     ];
-    for (final c in courses) await _db!.insert('courses', c);
+    for (final c in courses) {
+      await _db!.insert('courses', c);
+    }
 
-    // ── Lessons ──────────────────────────────────────────────────────────────
     final lessons = [
-      // WEEK 3 ───────────────────────────────────────────────────────────────
       {
         'id':'week3_l1','course_id':'week3',
         'title':'Stateless vs Stateful Widgets',
@@ -229,8 +200,6 @@ class _MpesaBalanceState extends State<MpesaBalance> {
 > fields update as you fill in your PIN, income, and tax bracket.
 ''',
       },
-
-      // WEEK 4 ───────────────────────────────────────────────────────────────
       {
         'id':'week4_l1','course_id':'week4',
         'title':'SQLite — Offline Data Storage',
@@ -286,8 +255,6 @@ await db.delete('stock', where: 'item=?', whereArgs: ['Sukari']);
 > Turkana or Marsabit, then submit when back online.
 ''',
       },
-
-      // WEEK 5 ───────────────────────────────────────────────────────────────
       {
         'id':'week5_l1','course_id':'week5',
         'title':'REST APIs & HTTP in Flutter',
@@ -347,8 +314,6 @@ try {
 > citizen data across NTSA, NHIF, and KRA databases in real time.
 ''',
       },
-
-      // PHP ───────────────────────────────────────────────────────────────────
       {
         'id':'php_l1','course_id':'php',
         'title':'PHP Basics — Kenya Web Context',
@@ -451,7 +416,6 @@ used to build dynamic websites. It runs on the **server**, not the browser.
 > M-Pesa STK Push integration via Safaricom Daraja API.
 ''',
       },
-
       {
         'id':'php_l2','course_id':'php',
         'title':'PHP Forms & Daraja API',
@@ -475,19 +439,19 @@ used to build dynamic websites. It runs on the **server**, not the browser.
 ```php
 <?php
 // pay.php — process the form
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $phone  = htmlspecialchars($_POST['phone']);
-  $amount = (int) $_POST['amount'];
+if (\$_SERVER['REQUEST_METHOD'] === 'POST') {
+  \$phone  = htmlspecialchars(\$_POST['phone']);
+  \$amount = (int) \$_POST['amount'];
 
   // Validate Kenyan phone number
-  if (!preg_match('/^07[0-9]{8}/', $phone)) {
+  if (!preg_match('/^07[0-9]{8}/', \$phone)) {
     die("Invalid phone number. Use format 07XXXXXXXX");
   }
-  if ($amount < 1 || $amount > 150000) {
+  if (\$amount < 1 || \$amount > 150000) {
     die("Amount must be between KES 1 and KES 150,000");
   }
 
-  echo "Initiating M-Pesa STK Push to $phone for KES $amount...";
+  echo "Initiating M-Pesa STK Push to \$phone for KES \$amount...";
   // Call Daraja API here
 }
 ?>
@@ -497,59 +461,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ```php
 <?php
 function getMpesaToken(): string {
-  $key    = 'YOUR_CONSUMER_KEY';
-  $secret = 'YOUR_CONSUMER_SECRET';
-  $credentials = base64_encode("$key:$secret");
+  \$key    = 'YOUR_CONSUMER_KEY';
+  \$secret = 'YOUR_CONSUMER_SECRET';
+  \$credentials = base64_encode("\$key:\$secret");
 
-  $ch = curl_init('https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials');
-  curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Basic $credentials"]);
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  $res  = curl_exec($ch);
-  $data = json_decode($res, true);
-  return $data['access_token'];
+  \$ch = curl_init('https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials');
+  curl_setopt(\$ch, CURLOPT_HTTPHEADER, ["Authorization: Basic \$credentials"]);
+  curl_setopt(\$ch, CURLOPT_RETURNTRANSFER, true);
+  \$res  = curl_exec(\$ch);
+  \$data = json_decode(\$res, true);
+  return \$data['access_token'];
 }
 
-function stkPush(string $phone, int $amount): array {
-  $token     = getMpesaToken();
-  $timestamp = date('YmdHis');
-  $shortcode = '174379'; // Safaricom sandbox
-  $passkey   = 'YOUR_PASSKEY';
-  $password  = base64_encode($shortcode . $passkey . $timestamp);
+function stkPush(string \$phone, int \$amount): array {
+  \$token     = getMpesaToken();
+  \$timestamp = date('YmdHis');
+  \$shortcode = '174379'; // Safaricom sandbox
+  \$passkey   = 'YOUR_PASSKEY';
+  \$password  = base64_encode(\$shortcode . \$passkey . \$timestamp);
 
-  $payload = [
-    'BusinessShortCode' => $shortcode,
-    'Password'          => $password,
-    'Timestamp'         => $timestamp,
+  \$payload = [
+    'BusinessShortCode' => \$shortcode,
+    'Password'          => \$password,
+    'Timestamp'         => \$timestamp,
     'TransactionType'   => 'CustomerPayBillOnline',
-    'Amount'            => $amount,
-    'PartyA'            => "254" . substr($phone, 1),
-    'PartyB'            => $shortcode,
-    'PhoneNumber'       => "254" . substr($phone, 1),
+    'Amount'            => \$amount,
+    'PartyA'            => "254" . substr(\$phone, 1),
+    'PartyB'            => \$shortcode,
+    'PhoneNumber'       => "254" . substr(\$phone, 1),
     'CallBackURL'       => 'https://yourapp.co.ke/callback',
     'AccountReference'  => 'LearnAI',
     'TransactionDesc'   => 'Course payment',
   ];
 
-  $ch = curl_init('https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest');
-  curl_setopt($ch, CURLOPT_POST, true);
-  curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-  curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Authorization: Bearer $token",
+  \$ch = curl_init('https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest');
+  curl_setopt(\$ch, CURLOPT_POST, true);
+  curl_setopt(\$ch, CURLOPT_POSTFIELDS, json_encode(\$payload));
+  curl_setopt(\$ch, CURLOPT_HTTPHEADER, [
+    "Authorization: Bearer \$token",
     "Content-Type: application/json",
   ]);
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  return json_decode(curl_exec($ch), true);
+  curl_setopt(\$ch, CURLOPT_RETURNTRANSFER, true);
+  return json_decode(curl_exec(\$ch), true);
 }
 
 // Trigger payment
-$result = stkPush('0712345678', 500);
-echo $result['ResponseDescription'];
+\$result = stkPush('0712345678', 500);
+echo \$result['ResponseDescription'];
 ?>
 ```
 ''',
       },
-
-      // PYTHON ────────────────────────────────────────────────────────────────
       {
         'id':'python_l1','course_id':'python',
         'title':'Python Basics — Kenyan Context',
@@ -652,7 +614,6 @@ print(f"{name} is taking {course}")
 > Plot population density per county using matplotlib.
 ''',
       },
-
       {
         'id':'python_l2','course_id':'python',
         'title':'Python Data Analysis — KNBS Case Study',
@@ -757,8 +718,6 @@ chama.lend("Kamau", 3000)
 ```
 ''',
       },
-
-      // NETWORKS ────────────────────────────────────────────────────────────
       {
         'id':'networks_l1','course_id':'networks',
         'title':'Computer Networks — Kenya Infrastructure',
@@ -826,7 +785,6 @@ CIDR notation: 197.248.1.0/24 — 254 usable hosts
 > making it East Africa's largest telco.
 ''',
       },
-
       {
         'id':'networks_l2','course_id':'networks',
         'title':'TCP/IP, DNS & Security — Kenyan Cases',
@@ -835,119 +793,157 @@ CIDR notation: 197.248.1.0/24 — 254 usable hosts
         'TCP/IP is the protocol suite powering the internet. '
             'DNS translates names to IPs. HTTPS secures eCitizen and M-Pesa.',
         'content':'''
-## TCP/IP, DNS & Network Security
+... (long content) ...
+''',
+      },
+      {
+        'id':'week9_l1','course_id':'week9',
+        'title':'Integrating Smartphone Hardware',
+        'read_minutes':6,'progress':0.0,
+        'ai_summary':
+        'Modern apps use hardware like Camera and GPS to solve real problems '
+            'like navigation (Uber) and authentication (Banking).',
+        'content':'''
+## Integrating Device Features
 
-### TCP vs UDP
-```
-TCP (Transmission Control Protocol)
-  ✓ Reliable — guarantees delivery
-  ✓ Ordered — packets arrive in sequence
-  ✗ Slower
-  Use: eCitizen file upload, KRA tax submission, email
+Mobile apps have a huge advantage over desktop: **direct access to hardware**.
 
-UDP (User Datagram Protocol)
-  ✗ No guarantee of delivery
-  ✓ Very fast — no handshake
-  Use: M-Pesa USSD (*334#), live sports streaming, VoIP calls
-```
+### Key Hardware Examples
+- **Camera:** Photos, videos, QR scanning.
+- **GPS:** Location tracking, mapping.
+- **Sensors:** Accelerometer (motion), Gyroscope (rotation), Light sensor.
+- **Biometrics:** Fingerprint and Face ID for secure login.
 
-### Three-way TCP handshake
-```
-Client (Nairobi)          Server (ecitizen.go.ke)
-     |                           |
-     |------- SYN ------------->|   "I want to connect"
-     |<------ SYN-ACK ----------|   "OK, confirmed"
-     |------- ACK ------------->|   "Great, let us talk"
-     |====== DATA EXCHANGE ======|
-```
+### Real-world applications
+- **Uber:** Uses GPS to connect drivers and riders.
+- **WhatsApp:** Uses Camera and Microphone for communication.
+- **Fitness apps:** Use Accelerometer to count steps.
 
-### DNS — Domain Name System
-DNS is like the phonebook of the internet. You type a name;
-DNS returns the IP address.
+### Android Permissions
+Before accessing hardware, you **must** request permission from the user.
+1. **Camera permission**
+2. **Location permission** (Fine vs Coarse)
+3. **Microphone permission**
 
-```
-You type:   www.safaricom.co.ke
-DNS lookup: 197.248.4.154  (Safaricom's IP)
-Browser connects to: 197.248.4.154:443 (HTTPS)
-```
+### Camera Steps
+1. Request permission in `AndroidManifest.xml`.
+2. Request runtime permission.
+3. Launch camera via `image_picker`.
+4. Capture and display the image.
 
-**Kenya DNS facts:**
-- `.co.ke` domains managed by KENIC (Kenya Network Information Centre)
-- KICTANet oversees Kenya internet governance
-- Root DNS servers (13 globally) are queried through local resolvers
+### GPS Steps
+1. Request location permission.
+2. Enable GPS service.
+3. Obtain coordinates (Lat/Long) using `geolocator`.
+4. Display on map or text.
 
-### HTTPS & SSL — how eCitizen stays secure
-```
-1. Browser requests https://ecitizen.go.ke
-2. Server sends SSL certificate (issued by a CA like DigiCert)
-3. Browser verifies certificate is valid and not expired
-4. Symmetric encryption key exchanged (TLS handshake)
-5. All data encrypted — your Huduma Number safe in transit
-```
+> **Kenya Case Study:** Safaricom's M-Pesa app uses the **Camera** to scan 
+> "Lipa na M-Pesa" QR codes at shops, making payments faster than typing 
+> till numbers manually.
+''',
+      },
+      {
+        'id':'week10_l1','course_id':'week10',
+        'title':'Testing and User Experience',
+        'read_minutes':5,'progress':0.0,
+        'ai_summary':
+        'Integration testing ensures all parts (DB, UI, API) work together. '
+            'UX focus makes the app intuitive and responsive.',
+        'content':'''
+## Integration and Testing
 
-### Common network attacks & Kenya examples
-```
-Phishing      → Fake "Safaricom" SMS asking for M-Pesa PIN
-               → "KRA Tax Refund" scam emails
-               → Always check sender: @safaricom.co.ke not @gmail.com
+### 1. Application Integration
+This is where we connect all the pieces:
+- **UI + Navigation:** Moving between screens.
+- **Forms + Database:** Saving user input to SQLite.
+- **CRUD + UI:** Showing list items (RecyclerView/ListView) from DB.
 
-DDoS          → 2022: Several Kenyan bank websites knocked offline
-               → Saturates server with millions of fake requests
+### 2. User Experience (UX)
+A great app must be:
+- **Consistent:** Same colors and icons throughout.
+- **Responsive:** Buttons should feel clickable.
+- **Informative:** Show loading indicators and clear error messages.
 
-Man-in-Middle → Public WiFi at Nairobi CBD cafes intercepts traffic
-               → Solution: Use VPN + only visit HTTPS sites
+### 3. Functional Testing
+Does the feature actually work?
+- Can a user register?
+- Does the camera open?
+- Does the search filter correctly?
 
-SQL Injection → Attacker sends SQL in a web form field
-               → Input: "'; DROP TABLE users; --"
-               → Solution: Use prepared statements (same as PDO in PHP)
-```
+### 4. Non-functional Testing
+- **Performance:** Does it lag?
+- **Reliability:** Does it crash on low battery?
+- **Security:** Are passwords hashed?
 
-### Subnetting exercise — Nairobi University campus
-```
-University needs 5 departments:
-  Admin:    30 hosts  → /27 (subnet: 192.168.1.0/27,  30 hosts)
-  Library:  50 hosts  → /26 (subnet: 192.168.1.64/26, 62 hosts)
-  ICT Lab:  60 hosts  → /26 (subnet: 192.168.1.128/26,62 hosts)
-  Hostels: 100 hosts  → /25 (subnet: 192.168.1.0/25, 126 hosts)
-  WiFi:    200 hosts  → /24 (subnet: 192.168.2.0/24, 254 hosts)
-```
+> **Final Review Checklist:**
+> - [ ] Screens connected?
+> - [ ] Data saves to SQLite?
+> - [ ] Camera/GPS works?
+> - [ ] No crashes?
+''',
+      },
+      {
+        'id':'week11_l1','course_id':'week11',
+        'title':'Deployment and Publishing',
+        'read_minutes':5,'progress':0.0,
+        'ai_summary':
+        'Preparing for release involves cleaning code, updating versions, '
+            'and choosing between APK (direct) or AAB (Play Store).',
+        'content':'''
+## Deployment and Publishing
 
-> **Kenya fact:** The Konza Technopolis (Silicon Savannah) smart city
-> 60 km from Nairobi is designed with a fibre backbone to every building,
-> 1 Gbps internet, and a dedicated data centre for government cloud services.
+### 1. Preparing for Release
+- **Remove debug code:** Delete `print()` statements and test credentials.
+- **Update Version:** Increment `version` in `pubspec.yaml`.
+- **Assets:** Ensure you have a professional app icon and splash screen.
+
+### 2. APK vs AAB
+- **APK (Android Package):** Great for direct sharing (sideloading).
+- **AAB (Android App Bundle):** Required for the Google Play Store. It generates optimized APKs for different devices.
+
+### 3. Store Listing Requirements
+- **App Name & Descriptions:** Short and long versions.
+- **Screenshots:** Show off the app's best features.
+- **Privacy Policy:** Especially important if using Camera/GPS.
+
+### 4. Maintenance
+Deployment is not the end. You must:
+- Fix bugs reported by users.
+- Release security updates.
+- Add new features based on feedback.
+
+> **Project Pitch:** When presenting your app, focus on the **Problem** it 
+> solves, the **Hardware** it uses, and how it handles **Offline** data.
 ''',
       },
     ];
 
-    for (final l in lessons) await _db!.insert('lessons', l);
+    for (final l in lessons) {
+      await _db!.insert('lessons', l);
+    }
 
-    // Default progress stats
     await _db!.insert('user_progress', {'key':'streak','value':'3'});
     await _db!.insert('user_progress', {'key':'lessons_done','value':'6'});
     await _db!.insert('user_progress', {'key':'quiz_avg','value':'82'});
   }
 
-  // ── USER CRUD ─────────────────────────────────────────────────────────────
-
-  /// Registers a new user. Returns false if email already taken.
   Future<bool> registerUser(
       String name, String email, String password) async {
     try {
       await _db!.insert('users', {
         'name':       name,
         'email':      email,
-        'password':   password, // hash in production!
+        'password':   password,
         'level':      0,
         'created_at': DateTime.now().toIso8601String(),
       });
       await logActivity(email, 'REGISTER', 'New account created');
       return true;
     } catch (_) {
-      return false; // email duplicate
+      return false;
     }
   }
 
-  /// Validates login credentials. Returns user map or null.
   Future<Map<String, dynamic>?> loginUser(
       String email, String password) async {
     final rows = await _db!.query('users',
@@ -959,13 +955,9 @@ University needs 5 departments:
     return rows.first;
   }
 
-  /// Returns all registered users.
   Future<List<Map<String, dynamic>>> getAllUsers() =>
       _db!.query('users', orderBy: 'created_at DESC');
 
-  // ── ACTIVITY LOG ──────────────────────────────────────────────────────────
-
-  /// Records a user action in the activity log.
   Future<void> logActivity(
       String email, String action, [String? detail]) =>
       _db!.insert('user_activity', {
@@ -975,7 +967,6 @@ University needs 5 departments:
         'occurred_at': DateTime.now().toIso8601String(),
       });
 
-  /// Returns recent activity for a user (newest first).
   Future<List<Map<String, dynamic>>> getUserActivity(
       String email, {int limit = 20}) =>
       _db!.query('user_activity',
@@ -984,7 +975,6 @@ University needs 5 departments:
           orderBy: 'occurred_at DESC',
           limit: limit);
 
-  /// Returns all activity across all users (admin view).
   Future<List<Map<String, dynamic>>> getAllActivity({int limit = 50}) =>
       _db!.rawQuery(
           '''SELECT ua.*, u.name as user_name
@@ -993,8 +983,6 @@ University needs 5 departments:
            ORDER BY ua.occurred_at DESC
            LIMIT ?''',
           [limit]);
-
-  // ── COURSES ───────────────────────────────────────────────────────────────
 
   Future<List<Course>> getCourses() async {
     final rows = await _db!.query('courses', orderBy: 'id ASC');
@@ -1010,8 +998,6 @@ University needs 5 departments:
 
   Future<void> deleteCourse(String id) =>
       _db!.delete('courses', where: 'id = ?', whereArgs: [id]);
-
-  // ── LESSONS ───────────────────────────────────────────────────────────────
 
   Future<Lesson?> getLesson(String courseId) async {
     final rows = await _db!.query('lessons',
@@ -1029,8 +1015,6 @@ University needs 5 departments:
   Future<void> saveProgress(String lessonId, double progress) =>
       _db!.update('lessons', {'progress': progress},
           where: 'id = ?', whereArgs: [lessonId]);
-
-  // ── QUIZ ATTEMPTS ─────────────────────────────────────────────────────────
 
   Future<void> saveQuizAttempt(
       String lessonId, int score, String email) =>
@@ -1053,8 +1037,6 @@ University needs 5 departments:
   Future<void> deleteQuizAttempt(int id) =>
       _db!.delete('quiz_attempts', where: 'id = ?', whereArgs: [id]);
 
-  // ── USER PROGRESS ─────────────────────────────────────────────────────────
-
   Future<Map<String, String>> getUserProgress() async {
     final rows = await _db!.query('user_progress');
     return {for (final r in rows)
@@ -1067,10 +1049,4 @@ University needs 5 departments:
 
   Future<void> clearAllQuizHistory(String email) =>
       _db!.delete('quiz_attempts', where: 'user_email = ?', whereArgs: [email]);
-}
-
-class _POST {
-}
-
-class _SERVER {
 }

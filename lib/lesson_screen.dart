@@ -82,7 +82,6 @@ class _LessonState extends State<LessonScreen> {
             padding: const EdgeInsets.all(20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Reading time chip
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
@@ -101,7 +100,6 @@ class _LessonState extends State<LessonScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Lesson Markdown content
                 MarkdownBody(
                   data: _lesson!.content,
                   styleSheet: MarkdownStyleSheet(
@@ -117,18 +115,17 @@ class _LessonState extends State<LessonScreen> {
                         color: const Color(0xFFF0FAF6),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                            color: _green.withOpacity(0.2))),
+                            color: _green.withValues(alpha: 0.2))),
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                // AI Summary
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                       color: _greenLight,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _green.withOpacity(0.25))),
+                      border: Border.all(color: _green.withValues(alpha: 0.25))),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -150,7 +147,6 @@ class _LessonState extends State<LessonScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Quiz
                 if (_lesson!.quiz != null) _buildQuiz(_lesson!.quiz!),
                 const SizedBox(height: 40),
               ],
@@ -170,7 +166,6 @@ class _LessonState extends State<LessonScreen> {
           style: const TextStyle(fontSize: 14, height: 1.5)),
       const SizedBox(height: 12),
 
-      // Answer options
       ...q.options.asMap().entries.map((e) {
         final i = e.key;
         Color bg    = Colors.white;
@@ -210,7 +205,6 @@ class _LessonState extends State<LessonScreen> {
       }),
       const SizedBox(height: 12),
 
-      // Check / result
       if (!_answered)
         SizedBox(
           width: double.infinity, height: 48,
@@ -235,7 +229,7 @@ class _LessonState extends State<LessonScreen> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                   color: (_selected == q.correctIndex
-                      ? _green : _error).withOpacity(0.3))),
+                      ? _green : _error).withValues(alpha: 0.3))),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(

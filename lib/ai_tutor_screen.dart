@@ -15,9 +15,7 @@ class _AiTutorState extends State<AiTutorScreen> {
   bool   _loading      = false;
   String _lessonTitle  = 'Flutter';
 
-  // Replace with your Anthropic API key
   static const _apiKey = 'YOUR_API_KEY_HERE';
-
   static const _green      = Color(0xFF1D9E75);
   static const _greenLight = Color(0xFFE1F5EE);
   static const _greenDark  = Color(0xFF0F6E56);
@@ -122,7 +120,7 @@ class _AiTutorState extends State<AiTutorScreen> {
         title: Row(children: [
           CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.white.withOpacity(0.2),
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
               child: const Icon(Icons.psychology_rounded,
                   color: Colors.white, size: 18)),
           const SizedBox(width: 10),
@@ -147,7 +145,6 @@ class _AiTutorState extends State<AiTutorScreen> {
         ],
       ),
       body: Column(children: [
-        // Context banner
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
@@ -161,7 +158,6 @@ class _AiTutorState extends State<AiTutorScreen> {
           ]),
         ),
 
-        // Message list
         Expanded(
           child: ListView.builder(
             controller: _scroll,
@@ -174,7 +170,6 @@ class _AiTutorState extends State<AiTutorScreen> {
           ),
         ),
 
-        // Suggestion chips (only at the start)
         if (_msgs.length <= 2)
           SizedBox(
             height: 46,
@@ -190,7 +185,7 @@ class _AiTutorState extends State<AiTutorScreen> {
                           fontSize: 11, color: _greenDark)),
                   backgroundColor: _greenLight,
                   side: BorderSide(
-                      color: _green.withOpacity(0.4), width: 0.5),
+                      color: _green.withValues(alpha: 0.4), width: 0.5),
                   visualDensity: VisualDensity.compact,
                   onPressed: () { _ctrl.text = s; _send(); },
                 ),
@@ -198,7 +193,6 @@ class _AiTutorState extends State<AiTutorScreen> {
             ),
           ),
 
-        // Input row
         Container(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
           decoration: BoxDecoration(
@@ -271,11 +265,11 @@ class _AiTutorState extends State<AiTutorScreen> {
               if (m.ai) ...[
                 const Row(children: [
                   Icon(Icons.psychology_rounded,
-                      size: 13, color: _green),
+                      size: 13, color: green),
                   SizedBox(width: 4),
                   Text('AI Tutor',
                       style: TextStyle(fontSize: 11,
-                          fontWeight: FontWeight.w600, color: _green)),
+                          fontWeight: FontWeight.w600, color: green)),
                 ]),
                 const SizedBox(height: 5),
               ],

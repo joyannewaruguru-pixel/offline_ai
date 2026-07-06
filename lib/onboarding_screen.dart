@@ -50,8 +50,6 @@ class _OnboardingState extends State<OnboardingScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-            // ── Logo ─────────────────────────────────────────────────────────
             Center(child: Column(children: [
               Container(
                 width: 72, height: 72,
@@ -70,7 +68,6 @@ class _OnboardingState extends State<OnboardingScreen> {
             ])),
             const SizedBox(height: 36),
 
-            // ── Level picker ──────────────────────────────────────────────────
             const Text('Choose your level',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
@@ -120,7 +117,6 @@ class _OnboardingState extends State<OnboardingScreen> {
               );
             }),
 
-            // ── Download section ──────────────────────────────────────────────
             if (_level >= 0) ...[
               const SizedBox(height: 24),
               const Text('Download content pack',
@@ -131,7 +127,7 @@ class _OnboardingState extends State<OnboardingScreen> {
                 decoration: BoxDecoration(
                   color: greenLight,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: green.withOpacity(0.3)),
+                  border: Border.all(color: green.withValues(alpha: 0.3)),
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -152,7 +148,7 @@ class _OnboardingState extends State<OnboardingScreen> {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: _dlProgress, minHeight: 6,
-                          backgroundColor: green.withOpacity(0.15),
+                          backgroundColor: green.withValues(alpha: 0.15),
                           valueColor:
                           const AlwaysStoppedAnimation<Color>(green),
                         ),

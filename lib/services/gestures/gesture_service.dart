@@ -5,15 +5,10 @@
 ///   class KeyboardController → onKeyInput(), validateInput()
 ///   class EventLogger      → log(), getHistory()
 ///
-/// All events are logged to SQLite via DBService for evidence.
+/// All events are logged to SQLite via DBService fo
 
 import '../../db_service.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EVENT MODEL
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Represents a single logged input/gesture event.
 class InputEvent {
   final String type;      // TAP, SWIPE_LEFT, SWIPE_RIGHT, LONG_PRESS, KEY_INPUT
   final String message;   // human-readable description
@@ -26,15 +21,9 @@ class InputEvent {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EVENT LOGGER  (equivalent to Python's print / logging)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Stores event history in memory AND persists to SQLite.
 class EventLogger {
   final List<InputEvent> _history = [];
 
-  /// Returns a copy of the event history, newest first.
   List<InputEvent> getHistory() => List.unmodifiable(_history.reversed.toList());
 
   /// Logs an event to memory and optionally to the database.
@@ -48,16 +37,9 @@ class EventLogger {
     await DBService.instance.logActivity(userEmail, type, message);
   }
 
-  /// Clears the in-memory history.
   void clear() => _history.clear();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GESTURE HANDLER  — tap, swipe, long press
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Handles all touch gesture events.
-/// Each gesture type is a dedicated method — OOP class-based structure.
 class GestureHandler {
   final EventLogger _logger;
   final String      _userEmail;
@@ -66,28 +48,24 @@ class GestureHandler {
       : _logger = logger,
         _userEmail = userEmail;
 
-  /// Called when the user taps on an element.
   Future<String> onTap(String target) async {
     final msg = 'Tap detected on: $target';
     await _logger.log('TAP', msg, _userEmail);
     return msg;
   }
 
-  /// Called when the user swipes left (e.g. previous page / delete).
   Future<String> onSwipeLeft(String target) async {
     final msg = 'Swipe left on: $target → Previous / Delete';
     await _logger.log('SWIPE_LEFT', msg, _userEmail);
     return msg;
   }
 
-  /// Called when the user swipes right (e.g. next page).
   Future<String> onSwipeRight(String target) async {
     final msg = 'Swipe right on: $target → Next page';
     await _logger.log('SWIPE_RIGHT', msg, _userEmail);
     return msg;
   }
 
-  /// Called when the user long-presses an element.
   Future<String> onLongPress(String target) async {
     final msg = 'Long press on: $target → Context menu displayed';
     await _logger.log('LONG_PRESS', msg, _userEmail);
@@ -95,12 +73,6 @@ class GestureHandler {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// KEYBOARD CONTROLLER — input detection and validation
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Handles keyboard input events and validation logic.
-/// Mirrors the Python KeyboardController and LoginForm classes.
 class KeyboardController {
   final EventLogger _logger;
   final String      _userEmail;
@@ -109,14 +81,11 @@ class KeyboardController {
       : _logger = logger,
         _userEmail = userEmail;
 
-  /// Called on every keystroke — logs what was typed.
   Future<void> onKeyInput(String text) async {
     if (text.isEmpty) return;
     await _logger.log('KEY_INPUT', 'Input received: "$text"', _userEmail);
   }
 
-  /// Validates the text field input.
-  /// Returns null if valid, or an error message string.
   String? validateInput(String value) {
     if (value.trim().isEmpty) return 'Input cannot be empty';
     if (value.trim().length < 3) return 'Input too short (minimum 3 characters)';
@@ -124,7 +93,6 @@ class KeyboardController {
     return null; // null = valid
   }
 
-  /// Handles the Enter / Submit key action.
   Future<String> onSubmit(String text) async {
     final error = validateInput(text);
     if (error != null) {
@@ -136,12 +104,6 @@ class KeyboardController {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MOBILE APP  — top-level coordinator (matches lecturer's MobileApp class)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Top-level class that wires GestureHandler + KeyboardController together.
-/// Equivalent to the lecturer's Python MobileApp class.
 class MobileApp {
   final EventLogger       logger;
   final GestureHandler    gestureHandler;
@@ -154,7 +116,6 @@ class MobileApp {
         keyboardController = KeyboardController(
             logger:     EventLogger(), userEmail: userEmail);
 
-  /// Singleton-style factory so any screen can share the same instance.
   static MobileApp? _instance;
   static MobileApp getInstance(String userEmail) {
     _instance ??= MobileApp(userEmail: userEmail);

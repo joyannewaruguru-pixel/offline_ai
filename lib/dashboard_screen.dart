@@ -9,9 +9,6 @@ import 'services/api_user_screen.dart';
 import 'screens/crud_screen.dart';
 import 'screens/activity_screen.dart';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ROOT SCAFFOLD — bottom nav + IndexedStack
-// ═════════════════════════════════════════════════════════════════════════════
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
   @override
@@ -66,9 +63,6 @@ class _DashboardState extends State<DashboardScreen> {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// HOME TAB
-// ═════════════════════════════════════════════════════════════════════════════
 class _HomeTab extends StatefulWidget {
   final List<Course> courses;
   final bool         loading;
@@ -78,15 +72,12 @@ class _HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<_HomeTab> {
-  // Greeting state
   GreetingInfo?  _greeting;
   bool          _greetLoading = true;
 
-  // Search state
   final TextEditingController _searchCtrl = TextEditingController();
   List<Course> _filtered = [];
 
-  // Stats from DB
   String _streak      = '…';
   String _lessonsDone = '…';
   String _quizAvg     = '…';
@@ -111,13 +102,9 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   void dispose() { _searchCtrl.dispose(); super.dispose(); }
 
-  // ── loaders ──────────────────────────────────────────────────────────────
-
   Future<void> _loadGreeting() async {
-    // TimeService.getGreeting() calls WorldTimeAPI or falls back to device
     final GreetingInfo info = await TimeService.instance.getGreeting();
     if (mounted) setState(() { _greeting = info; _greetLoading = false; });
-    // Refresh every 60 s so it changes at noon/evening without restart
     await Future.delayed(const Duration(minutes: 1));
     if (mounted) _loadGreeting();
   }
@@ -145,20 +132,16 @@ class _HomeTabState extends State<_HomeTab> {
     });
   }
 
-  // ── build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final double w   = MediaQuery.of(context).size.width;
     final double pad = w > 600 ? 32.0 : 20.0;
 
-    // Greeting colours — update AppBar gradient when greeting loads
     final Color bgTop =
         _greeting?.bgTop    ?? const Color(0xFF1D9E75);
     final Color bgBottom =
         _greeting?.bgBottom ?? const Color(0xFF15785A);
 
-    // In-progress course for "continue learning" card
     final Course? inProgress = widget.courses.isNotEmpty
         ? widget.courses.firstWhere(
             (c) => c.progress < 1.0,
@@ -166,14 +149,11 @@ class _HomeTabState extends State<_HomeTab> {
         : null;
 
     return CustomScrollView(slivers: [
-
-      // ── Animated greeting app bar ─────────────────────────────────────
       SliverAppBar(
         expandedHeight: 155,
         pinned: true,
         backgroundColor: bgTop,
         actions: [
-          // Dark mode toggle
           Consumer<ThemeService>(
               builder: (_, ts, __) => IconButton(
                   tooltip: ts.isDark ? 'Switch to light' : 'Switch to dark',
@@ -181,7 +161,6 @@ class _HomeTabState extends State<_HomeTab> {
                       ts.isDark ? Icons.light_mode : Icons.dark_mode,
                       color: Colors.white),
                   onPressed: ts.toggle)),
-          // Greeting source icon (clock or sun)
           Padding(
               padding: const EdgeInsets.only(right: 8),
               child: _greetLoading
@@ -193,7 +172,6 @@ class _HomeTabState extends State<_HomeTab> {
                           strokeWidth: 2, color: Colors.white)))
                   : Tooltip(
                   message: 'Time from WorldTimeAPI',
-                  // ← uses greetIcon, NOT icon
                   child: Icon(_greeting!.greetIcon,
                       color: Colors.white70, size: 22))),
         ],
@@ -211,7 +189,6 @@ class _HomeTabState extends State<_HomeTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // Greeting text or shimmer
                 _greetLoading
                     ? const _Shimmer(width: 200, height: 22)
                     : Text(
@@ -221,10 +198,8 @@ class _HomeTabState extends State<_HomeTab> {
                         fontSize: 22,
                         fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                // Live clock
                 _LiveClock(color: Colors.white60),
                 const SizedBox(height: 2),
-                // Subtext
                 if (!_greetLoading)
                   Text(_greeting!.subtext,
                       style: const TextStyle(
@@ -235,13 +210,10 @@ class _HomeTabState extends State<_HomeTab> {
         ),
       ),
 
-      // ── Scrollable body ──────────────────────────────────────────────
       SliverPadding(
         padding: EdgeInsets.all(pad),
         sliver: SliverList(
             delegate: SliverChildListDelegate([
-
-              // Stat cards — live from DB
               Row(children: [
                 _StatCard(value: _lessonsDone, label: 'Lessons'),
                 const SizedBox(width: 8),
@@ -251,7 +223,6 @@ class _HomeTabState extends State<_HomeTab> {
               ]),
               const SizedBox(height: 22),
 
-              // Quick links
               Row(children: [
                 Expanded(child: _QuickLink(
                     icon: Icons.cloud_outlined,
@@ -272,13 +243,22 @@ class _HomeTabState extends State<_HomeTab> {
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(
                             builder: (_) => const CrudScreen())))),
-                const SizedBox(width: 8),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
                 Expanded(child: _QuickLink(
                     icon: Icons.history_outlined,
-                    label: 'My\nActivity',
+                    label: 'My Activity',
                     onTap: () => Navigator.push(context,
                         MaterialPageRoute(
                             builder: (_) => const ActivityScreen())))),
+                const SizedBox(width: 8),
+                Expanded(child: _QuickLink(
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Device Features',
+                    onTap: () => Navigator.pushNamed(context, '/device-features'))),
+                const SizedBox(width: 8),
+                const Spacer(),
               ]),
               const SizedBox(height: 8),
               _WeekBannerLink(
@@ -287,9 +267,15 @@ class _HomeTabState extends State<_HomeTab> {
                 subtitle: 'Tap · Swipe · Long press · OOP class structure',
                 onTap: () => Navigator.pushNamed(context, '/gesture-demo'),
               ),
+              const SizedBox(height: 8),
+              _WeekBannerLink(
+                week: '9',
+                title: 'Device Features Integration',
+                subtitle: 'Camera · GPS · Sensors · Android Permissions',
+                onTap: () => Navigator.pushNamed(context, '/device-features'),
+              ),
               const SizedBox(height: 22),
 
-              // Continue learning
               const Text('Continue learning',
                   style: TextStyle(
                       fontSize: 15, fontWeight: FontWeight.w600)),
@@ -301,7 +287,6 @@ class _HomeTabState extends State<_HomeTab> {
                 _ContinueCard(course: inProgress),
               const SizedBox(height: 22),
 
-              // Module search + list
               Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -337,9 +322,6 @@ class _HomeTabState extends State<_HomeTab> {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// LIVE CLOCK — ticks every second
-// ═════════════════════════════════════════════════════════════════════════════
 class _LiveClock extends StatefulWidget {
   final Color color;
   const _LiveClock({required this.color});
@@ -380,9 +362,6 @@ class _LiveClockState extends State<_LiveClock> {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SHIMMER PLACEHOLDER
-// ═════════════════════════════════════════════════════════════════════════════
 class _Shimmer extends StatefulWidget {
   final double width;
   final double height;
@@ -418,10 +397,6 @@ class _ShimmerState extends State<_Shimmer>
               color: Colors.white.withValues(alpha: _anim.value),
               borderRadius: BorderRadius.circular(6))));
 }
-
-// ═════════════════════════════════════════════════════════════════════════════
-// SMALL REUSABLE WIDGETS
-// ═════════════════════════════════════════════════════════════════════════════
 
 class _StatCard extends StatelessWidget {
   final String value;
@@ -623,10 +598,6 @@ class _CourseRow extends StatelessWidget {
   }
 }
 
-
-// ═════════════════════════════════════════════════════════════════════════════
-// WEEK BANNER LINK — full-width card linking to a week demo
-// ═════════════════════════════════════════════════════════════════════════════
 class _WeekBannerLink extends StatelessWidget {
   final String week;
   final String title;
@@ -677,9 +648,6 @@ class _WeekBannerLink extends StatelessWidget {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// COURSES TAB
-// ═════════════════════════════════════════════════════════════════════════════
 class _CoursesTab extends StatelessWidget {
   final List<Course> courses;
   const _CoursesTab({required this.courses});
@@ -694,9 +662,6 @@ class _CoursesTab extends StatelessWidget {
               child: _CourseRow(course: c))).toList()));
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// NETWORK TAB
-// ═════════════════════════════════════════════════════════════════════════════
 class _NetworkTab extends StatelessWidget {
   const _NetworkTab();
 
@@ -712,7 +677,6 @@ class _NetworkTab extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // WorldTimeAPI card
                   Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -782,9 +746,6 @@ class _NetworkTab extends StatelessWidget {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// PROFILE TAB
-// ═════════════════════════════════════════════════════════════════════════════
 class _ProfileTab extends StatelessWidget {
   const _ProfileTab();
 
@@ -814,7 +775,6 @@ class _ProfileTab extends StatelessWidget {
         body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // Avatar
               Center(child: Column(children: [
                 CircleAvatar(
                     radius: 38, backgroundColor: greenLight,
@@ -834,7 +794,6 @@ class _ProfileTab extends StatelessWidget {
               ])),
               const SizedBox(height: 24),
 
-              // Dark mode toggle card
               Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.symmetric(
@@ -857,7 +816,6 @@ class _ProfileTab extends StatelessWidget {
                         activeThumbColor: green),
                   ])),
 
-              // Menu items
               ...menuItems.map((item) => ListTile(
                   leading: Icon(item['icon'] as IconData, color: green),
                   title: Text(item['label'] as String),
@@ -873,7 +831,6 @@ class _ProfileTab extends StatelessWidget {
                   })),
               const SizedBox(height: 20),
 
-              // Sign out
               SizedBox(
                   width: double.infinity, height: 50,
                   child: OutlinedButton.icon(

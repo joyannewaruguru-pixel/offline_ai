@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../auth_service.dart';
 import '../db_service.dart';
 
-/// Represents a single quiz attempt record.
-/// Using a dedicated model class improves type safety and readability.
 class QuizAttempt {
   final int id;
   final String lessonId;
@@ -33,7 +31,6 @@ class QuizAttempt {
   bool get isPass => score > 0;
 }
 
-/// Quiz history screen — reads all past attempts from SQLite.
 class QuizHistoryScreen extends StatefulWidget {
   const QuizHistoryScreen({super.key});
 
@@ -42,7 +39,6 @@ class QuizHistoryScreen extends StatefulWidget {
 }
 
 class _QuizHistoryState extends State<QuizHistoryScreen> {
-  // Constants for consistent styling
   static const _green      = Color(0xFF1D9E75);
   static const _greenLight = Color(0xFFE1F5EE);
   static const _greenDark  = Color(0xFF0F6E56);
@@ -54,7 +50,6 @@ class _QuizHistoryState extends State<QuizHistoryScreen> {
   List<QuizAttempt> _history = [];
   bool _loading = true;
 
-  // Stats derived from history
   int    get _total   => _history.length;
   int    get _correct => _history.where((h) => h.isPass).length;
   double get _avg     => _total == 0 ? 0 : (_correct / _total) * 100;
@@ -62,7 +57,6 @@ class _QuizHistoryState extends State<QuizHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // Schedule load after first frame to ensure context is ready for Provider
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
@@ -71,7 +65,6 @@ class _QuizHistoryState extends State<QuizHistoryScreen> {
     setState(() => _loading = true);
 
     try {
-      // Get the current user's email from AuthService
       final email = Provider.of<AuthService>(context, listen: false).email;
       final rawData = await DBService.instance.getQuizHistory(email);
 
@@ -221,7 +214,6 @@ class _QuizHistoryState extends State<QuizHistoryScreen> {
       );
 }
 
-/// Private helper widget for history list items.
 class _QuizHistoryCard extends StatelessWidget {
   final QuizAttempt attempt;
   final String formattedDate;
@@ -249,7 +241,7 @@ class _QuizHistoryCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: pass ? _green.withOpacity(0.3) : _error.withOpacity(0.3))),
+              color: pass ? _green.withValues(alpha: 0.3) : _error.withValues(alpha: 0.3))),
       child: Row(children: [
         Container(
             width: 40,
@@ -300,14 +292,14 @@ class _StatBox extends StatelessWidget {
           decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: color.withOpacity(0.2))),
+              border: Border.all(color: color.withValues(alpha: 0.2))),
           child: Column(children: [
             Text(value,
                 style: TextStyle(
                     fontSize: 20, fontWeight: FontWeight.w700, color: color)),
             const SizedBox(height: 2),
             Text(label,
-                style: TextStyle(fontSize: 10, color: color.withOpacity(0.8))),
+                style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8))),
           ]),
         ),
       );
