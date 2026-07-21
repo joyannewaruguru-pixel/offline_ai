@@ -9,36 +9,10 @@ class DBService {
   static final DBService instance = DBService._();
   Database? _db;
 
-  get _balance => null;
-
-  get counties => null;
-
-  get county => null;
-
-  get tax_rate => null;
-
-  get amount => null;
-
-  get gross => null;
-
-  get is_citizen => null;
-
-  get salary => null;
-
-  get tax => null;
-
-  get sql => null;
-
-  get conn => null;
-
-  get result => null;
-
-  get row => null;
-
   Future<void> init() async {
     final dbPath = await getDatabasesPath();
     _db = await openDatabase(
-      join(dbPath, 'learnai_v2.db'),
+      join(dbPath, 'learnai_v3.db'),
       version: 1,
       onCreate: _onCreate,
     );
@@ -46,65 +20,83 @@ class DBService {
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    await db.execute('''
-      CREATE TABLE users (
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        name       TEXT NOT NULL,
-        email      TEXT UNIQUE NOT NULL,
-        password   TEXT NOT NULL,
-        level      INTEGER DEFAULT 0,
-        created_at TEXT NOT NULL
-      )
-    ''');
+    await db.execute('''CREATE TABLE users(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      level INTEGER DEFAULT 0,
+      avatar_path TEXT,
+      face_id_path TEXT,
+      created_at TEXT NOT NULL
+    )''');
 
-    await db.execute('''
-      CREATE TABLE user_activity (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_email  TEXT NOT NULL,
-        action      TEXT NOT NULL,
-        detail      TEXT,
-        occurred_at TEXT NOT NULL
-      )
-    ''');
+    await db.execute('''CREATE TABLE user_activity(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_email TEXT NOT NULL,
+      action TEXT NOT NULL,
+      detail TEXT,
+      occurred_at TEXT NOT NULL
+    )''');
 
-    await db.execute('''
-      CREATE TABLE courses (
-        id        TEXT PRIMARY KEY,
-        title     TEXT NOT NULL,
-        subtitle  TEXT NOT NULL,
-        progress  REAL DEFAULT 0,
-        icon_code INTEGER NOT NULL
-      )
-    ''');
+    await db.execute('''CREATE TABLE courses(
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      subtitle TEXT NOT NULL,
+      progress REAL DEFAULT 0,
+      icon_code INTEGER NOT NULL
+    )''');
 
-    await db.execute('''
-      CREATE TABLE lessons (
-        id           TEXT PRIMARY KEY,
-        course_id    TEXT NOT NULL,
-        title        TEXT NOT NULL,
-        content      TEXT NOT NULL,
-        ai_summary   TEXT NOT NULL,
-        read_minutes INTEGER NOT NULL,
-        progress     REAL DEFAULT 0
-      )
-    ''');
+    await db.execute('''CREATE TABLE lessons(
+      id TEXT PRIMARY KEY,
+      course_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      ai_summary TEXT NOT NULL,
+      read_minutes INTEGER NOT NULL,
+      progress REAL DEFAULT 0
+    )''');
 
-    await db.execute('''
-      CREATE TABLE quiz_attempts (
-        id           INTEGER PRIMARY KEY AUTOINCREMENT,
-        lesson_id    TEXT NOT NULL,
-        user_email   TEXT NOT NULL,
-        score        INTEGER NOT NULL,
-        attempted_at TEXT NOT NULL
-      )
-    ''');
+    await db.execute('''CREATE TABLE quiz_attempts(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lesson_id TEXT NOT NULL,
+      user_email TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      attempted_at TEXT NOT NULL
+    )''');
 
-    await db.execute('''
-      CREATE TABLE user_progress (
-        key   TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      )
-    ''');
+    await db.execute('''CREATE TABLE user_progress(
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )''');
+
+    await db.execute('''CREATE TABLE rag_documents(
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      source TEXT NOT NULL,
+      chunk_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      user_email TEXT NOT NULL
+    )''');
+
+    await db.execute('''CREATE TABLE rag_chunks(
+      id TEXT PRIMARY KEY,
+      doc_id TEXT NOT NULL,
+      doc_name TEXT NOT NULL,
+      chunk_index INTEGER NOT NULL,
+      text TEXT NOT NULL,
+      embedding TEXT NOT NULL
+    )''');
+
+    await db.execute('''CREATE TABLE captured_documents(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_email TEXT NOT NULL,
+      image_path TEXT NOT NULL,
+      title TEXT,
+      description TEXT,
+      doc_type TEXT NOT NULL,
+      captured_at TEXT NOT NULL
+    )''');
   }
 
   Future<void> _seedIfEmpty() async {
@@ -113,811 +105,24 @@ class DBService {
     if (n > 0) return;
 
     final courses = [
-      {'id':'week1','title':'Intro to Mobile Dev',
-        'subtitle':'Week 1 · Flutter setup','progress':1.0,
-        'icon_code':Icons.phone_android.codePoint},
-      {'id':'week2','title':'Languages & Frameworks',
-        'subtitle':'Week 2 · Dart & Flutter basics','progress':1.0,
-        'icon_code':Icons.code.codePoint},
-      {'id':'week3','title':'UI Development',
-        'subtitle':'Week 3 · Widgets & Screens','progress':0.6,
-        'icon_code':Icons.dashboard_outlined.codePoint},
-      {'id':'week4','title':'Data Management',
-        'subtitle':'Week 4 · SQLite & SharedPrefs','progress':0.0,
-        'icon_code':Icons.storage_outlined.codePoint},
-      {'id':'week5','title':'Networking & APIs',
-        'subtitle':'Week 5 · REST & JSON','progress':0.0,
-        'icon_code':Icons.cloud_outlined.codePoint},
-      {'id':'php','title':'PHP Programming',
-        'subtitle':'Web dev · Kenya case study','progress':0.0,
-        'icon_code':Icons.web_outlined.codePoint},
-      {'id':'python','title':'Python Programming',
-        'subtitle':'Data & scripting · Kenyan context','progress':0.0,
-        'icon_code':Icons.terminal_outlined.codePoint},
-      {'id':'networks','title':'Computer Networks',
-        'subtitle':'Networking · Kenya infrastructure','progress':0.0,
-        'icon_code':Icons.router_outlined.codePoint},
-      {'id':'week9','title':'Device Features',
-        'subtitle':'Week 9 · Camera, GPS & Sensors','progress':0.0,
-        'icon_code':Icons.camera_alt_outlined.codePoint},
-      {'id':'week10','title':'Testing & UX',
-        'subtitle':'Week 10 · Integration & Testing','progress':0.0,
-        'icon_code':Icons.fact_check_outlined.codePoint},
-      {'id':'week11','title':'Deployment',
-        'subtitle':'Week 11 · Publishing to Store','progress':0.0,
-        'icon_code':Icons.rocket_launch_outlined.codePoint},
+      {'id':'week1','title':'Intro to Mobile Dev','subtitle':'Week 1 · Flutter setup','progress':1.0,'icon_code':Icons.phone_android.codePoint},
+      {'id':'week2','title':'Languages & Frameworks','subtitle':'Week 2 · Dart & Flutter','progress':1.0,'icon_code':Icons.code.codePoint},
+      {'id':'week3','title':'UI Development','subtitle':'Week 3 · Widgets & Screens','progress':0.6,'icon_code':Icons.dashboard_outlined.codePoint},
+      {'id':'week4','title':'Data Management','subtitle':'Week 4 · SQLite & SharedPrefs','progress':0.0,'icon_code':Icons.storage_outlined.codePoint},
+      {'id':'week5','title':'Networking & APIs','subtitle':'Week 5 · REST & JSON','progress':0.0,'icon_code':Icons.cloud_outlined.codePoint},
+      {'id':'week8','title':'Gestures & Input','subtitle':'Week 8 · OOP event handling','progress':0.0,'icon_code':Icons.touch_app_outlined.codePoint},
+      {'id':'week9','title':'Device Features','subtitle':'Week 9 · Camera, GPS, Sensors','progress':0.0,'icon_code':Icons.sensors_outlined.codePoint},
+      {'id':'week10','title':'Integration & Testing','subtitle':'Week 10 · QA & debugging','progress':0.0,'icon_code':Icons.bug_report_outlined.codePoint},
+      {'id':'week11','title':'Deployment','subtitle':'Week 11 · APK & Play Store','progress':0.0,'icon_code':Icons.rocket_launch_outlined.codePoint},
+      {'id':'php','title':'PHP Programming','subtitle':'Web dev · Kenya case study','progress':0.0,'icon_code':Icons.web_outlined.codePoint},
+      {'id':'python','title':'Python Programming','subtitle':'Data & scripting · Kenyan context','progress':0.0,'icon_code':Icons.terminal_outlined.codePoint},
+      {'id':'networks','title':'Computer Networks','subtitle':'Networking · Kenya infrastructure','progress':0.0,'icon_code':Icons.router_outlined.codePoint},
     ];
     for (final c in courses) {
       await _db!.insert('courses', c);
     }
 
-    final lessons = [
-      {
-        'id':'week3_l1','course_id':'week3',
-        'title':'Stateless vs Stateful Widgets',
-        'read_minutes':3,'progress':0.6,
-        'ai_summary':
-        'StatelessWidget = printed photo (never changes). '
-            'StatefulWidget = live M-Pesa balance (updates on setState).',
-        'content':'''
-## Stateless vs Stateful Widgets
-
-Every UI element in Flutter is a **widget**. Think of your Safaricom app —
-some parts never change (the logo, menu labels) and some update live
-(your airtime balance, data remaining).
-
-### StatelessWidget
-Builds once. Use for fixed content.
-
-```dart
-class CourseCard extends StatelessWidget {
-  final String title;
-  const CourseCard({required this.title});
-  @override
-  Widget build(BuildContext context) => Card(child: Text(title));
-}
-```
-
-### StatefulWidget
-Rebuilds when `setState()` is called — like refreshing your M-Pesa balance.
-
-```dart
-class MpesaBalance extends StatefulWidget {
-  @override
-  State<MpesaBalance> createState() => _MpesaBalanceState();
-}
-class _MpesaBalanceState extends State<MpesaBalance> {
-  double _balance = 0;
-  @override
-  Widget build(BuildContext context) => ElevatedButton(
-    onPressed: () => setState(() => _balance = 5000),
-    child: Text('Balance: KES ${_balance.toStringAsFixed(2)}'),
-  );
-}
-```
-
-> **Kenya example:** The KRA iTax portal uses stateful forms —
-> fields update as you fill in your PIN, income, and tax bracket.
-''',
-      },
-      {
-        'id':'week4_l1','course_id':'week4',
-        'title':'SQLite — Offline Data Storage',
-        'read_minutes':4,'progress':0.0,
-        'ai_summary':
-        'SQLite stores data as a file on the device. '
-            'Like a digital ledger at a kiosk — no internet needed.',
-        'content':'''
-## SQLite in Flutter
-
-SQLite is a full database engine stored as a single `.db` file on the phone.
-**No internet, no server** — perfect for offline apps used across Kenya
-where connectivity is inconsistent.
-
-### Real-world parallel
-Think of a *mama mboga* keeping her stock list in a notebook. SQLite is that
-notebook — always with you, no network required.
-
-### Setup
-```yaml
-# pubspec.yaml
-sqflite: ^2.3.3
-path: ^1.9.0
-```
-
-### Open the database
-```dart
-final db = await openDatabase(
-  join(await getDatabasesPath(), 'biashara.db'),
-  version: 1,
-  onCreate: (db, v) async {
-    await db.execute(
-      "CREATE TABLE stock (id INTEGER PRIMARY KEY, item TEXT, qty INTEGER)"
-    );
-  },
-);
-```
-
-### CRUD
-```dart
-// CREATE
-await db.insert('stock', {'item': 'Sukari', 'qty': 50});
-// READ
-final rows = await db.query('stock');
-// UPDATE
-await db.update('stock', {'qty': 45}, where: 'item=?', whereArgs: ['Sukari']);
-// DELETE
-await db.delete('stock', where: 'item=?', whereArgs: ['Sukari']);
-```
-
-> **Kenya case study:** The eCitizen app uses local SQLite caching so
-> Kenyans can fill forms offline in areas with poor coverage like
-> Turkana or Marsabit, then submit when back online.
-''',
-      },
-      {
-        'id':'week5_l1','course_id':'week5',
-        'title':'REST APIs & HTTP in Flutter',
-        'read_minutes':4,'progress':0.0,
-        'ai_summary':
-        'HTTP GET fetches data. HTTP POST sends data. '
-            'Like calling Safaricom customer care — you request, they respond.',
-        'content':'''
-## REST APIs in Flutter
-
-A REST API is a web service you talk to over HTTP.
-Every time you check your M-Pesa statement, Safaricom's app
-calls a REST API to fetch your transactions.
-
-### Add the package
-```yaml
-http: ^1.2.2
-```
-
-### GET request — fetch data
-```dart
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
-// Fetch Kenya counties from a public API
-final res = await http.get(
-  Uri.parse('https://jsonplaceholder.typicode.com/users'),
-);
-if (res.statusCode == 200) {
-  final List data = jsonDecode(res.body);
-  print('Fetched \${data.length} records');
-}
-```
-
-### POST request — send data
-```dart
-final res = await http.post(
-  Uri.parse('https://api.example.co.ke/feedback'),
-  headers: {'content-type': 'application/json'},
-  body: jsonEncode({'message': 'Great app!', 'county': 'Nairobi'}),
-);
-```
-
-### Always handle errors
-```dart
-try {
-  final res = await http.get(uri).timeout(Duration(seconds: 10));
-  if (res.statusCode == 200) { /* success */ }
-} catch (e) {
-  // Handle: no internet (common in rural Kenya)
-} finally {
-  setState(() => _loading = false);
-}
-```
-
-> **Kenya example:** The Huduma Number portal uses REST APIs to cross-check
-> citizen data across NTSA, NHIF, and KRA databases in real time.
-''',
-      },
-      {
-        'id':'php_l1','course_id':'php',
-        'title':'PHP Basics — Kenya Web Context',
-        'read_minutes':5,'progress':0.0,
-        'ai_summary':
-        'PHP runs on the server and generates web pages. '
-            'Most Kenyan government websites like eCitizen run on PHP.',
-        'content':'''
-## Introduction to PHP
-
-PHP (Hypertext Preprocessor) is a server-side scripting language
-used to build dynamic websites. It runs on the **server**, not the browser.
-
-### Why PHP matters in Kenya
-- **eCitizen** (ecitizen.go.ke) — built on PHP/Laravel
-- **KRA iTax** — PHP backend
-- Most Kenyan SACCO and microfinance web portals use PHP
-- Cheap hosting on Kenyan providers (Safaricom Cloud, Truehost Kenya)
-
-### Hello World
-```php
-<?php
-  echo "Habari, Kenya!";
-?>
-```
-
-### Variables & Data Types
-```php
-<?php
-  $county   = "Nairobi";       // String
-  $counties = 47;              // Integer
-  $tax_rate = 0.16;            // Float (VAT in Kenya)
-  $is_citizen = true;          // Boolean
-
-  echo "Kenya has $counties counties.";
-?>
-```
-
-### If / Else — M-Pesa tier example
-```php
-<?php
-  $amount = 5000; // KES
-
-  if ($amount <= 1000) {
-    echo "Charge: KES 0 (Free tier)";
-  } elseif ($amount <= 10000) {
-    echo "Charge: KES 45 (M-Pesa tier 2)";
-  } else {
-    echo "Charge: KES 95 (M-Pesa tier 3)";
-  }
-?>
-```
-
-### Loops — listing Kenya counties
-```php
-<?php
-  $counties = ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret"];
-
-  foreach ($counties as $county) {
-    echo "<li>$county County</li>";
-  }
-?>
-```
-
-### Functions — calculate KRA tax
-```php
-<?php
-  function calculatePAYE(float $gross): float {
-    // Kenya PAYE 2024 — simplified
-    if ($gross <= 24000) return $gross * 0.10;
-    if ($gross <= 32333) return 2400 + ($gross - 24000) * 0.25;
-    return 4483 + ($gross - 32333) * 0.30;
-  }
-
-  $salary = 50000;
-  $tax = calculatePAYE($salary);
-  echo "PAYE on KES $salary = KES $tax";
-?>
-```
-
-### PHP & MySQL (CRUD) — Student records
-```php
-<?php
-  $conn = new mysqli("localhost", "root", "", "university_db");
-
-  // CREATE
-  $sql = "INSERT INTO students (name, reg_no) VALUES ('Wanjiku', 'STU001')";
-  $conn->query($sql);
-
-  // READ
-  $result = $conn->query("SELECT * FROM students");
-  while ($row = $result->fetch_assoc()) {
-    echo $row['name'] . " — " . $row['reg_no'];
-  }
-?>
-```
-
-> **Kenya project idea:** Build a PHP system for a local *chama*
-> (investment group) to track contributions, loans, and dividends.
-> M-Pesa STK Push integration via Safaricom Daraja API.
-''',
-      },
-      {
-        'id':'php_l2','course_id':'php',
-        'title':'PHP Forms & Daraja API',
-        'read_minutes':5,'progress':0.0,
-        'ai_summary':
-        'PHP forms collect user input. '
-            'Safaricom Daraja API lets you trigger M-Pesa payments from PHP.',
-        'content':'''
-## PHP Forms & M-Pesa Daraja API
-
-### HTML Form + PHP processing
-```php
-<!-- form.html -->
-<form method="POST" action="pay.php">
-  <input type="text"   name="phone"  placeholder="07XXXXXXXX">
-  <input type="number" name="amount" placeholder="Amount (KES)">
-  <button type="submit">Pay via M-Pesa</button>
-</form>
-```
-
-```php
-<?php
-// pay.php — process the form
-if (\$_SERVER['REQUEST_METHOD'] === 'POST') {
-  \$phone  = htmlspecialchars(\$_POST['phone']);
-  \$amount = (int) \$_POST['amount'];
-
-  // Validate Kenyan phone number
-  if (!preg_match('/^07[0-9]{8}/', \$phone)) {
-    die("Invalid phone number. Use format 07XXXXXXXX");
-  }
-  if (\$amount < 1 || \$amount > 150000) {
-    die("Amount must be between KES 1 and KES 150,000");
-  }
-
-  echo "Initiating M-Pesa STK Push to \$phone for KES \$amount...";
-  // Call Daraja API here
-}
-?>
-```
-
-### Safaricom Daraja API — STK Push (simplified)
-```php
-<?php
-function getMpesaToken(): string {
-  \$key    = 'YOUR_CONSUMER_KEY';
-  \$secret = 'YOUR_CONSUMER_SECRET';
-  \$credentials = base64_encode("\$key:\$secret");
-
-  \$ch = curl_init('https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials');
-  curl_setopt(\$ch, CURLOPT_HTTPHEADER, ["Authorization: Basic \$credentials"]);
-  curl_setopt(\$ch, CURLOPT_RETURNTRANSFER, true);
-  \$res  = curl_exec(\$ch);
-  \$data = json_decode(\$res, true);
-  return \$data['access_token'];
-}
-
-function stkPush(string \$phone, int \$amount): array {
-  \$token     = getMpesaToken();
-  \$timestamp = date('YmdHis');
-  \$shortcode = '174379'; // Safaricom sandbox
-  \$passkey   = 'YOUR_PASSKEY';
-  \$password  = base64_encode(\$shortcode . \$passkey . \$timestamp);
-
-  \$payload = [
-    'BusinessShortCode' => \$shortcode,
-    'Password'          => \$password,
-    'Timestamp'         => \$timestamp,
-    'TransactionType'   => 'CustomerPayBillOnline',
-    'Amount'            => \$amount,
-    'PartyA'            => "254" . substr(\$phone, 1),
-    'PartyB'            => \$shortcode,
-    'PhoneNumber'       => "254" . substr(\$phone, 1),
-    'CallBackURL'       => 'https://yourapp.co.ke/callback',
-    'AccountReference'  => 'LearnAI',
-    'TransactionDesc'   => 'Course payment',
-  ];
-
-  \$ch = curl_init('https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest');
-  curl_setopt(\$ch, CURLOPT_POST, true);
-  curl_setopt(\$ch, CURLOPT_POSTFIELDS, json_encode(\$payload));
-  curl_setopt(\$ch, CURLOPT_HTTPHEADER, [
-    "Authorization: Bearer \$token",
-    "Content-Type: application/json",
-  ]);
-  curl_setopt(\$ch, CURLOPT_RETURNTRANSFER, true);
-  return json_decode(curl_exec(\$ch), true);
-}
-
-// Trigger payment
-\$result = stkPush('0712345678', 500);
-echo \$result['ResponseDescription'];
-?>
-```
-''',
-      },
-      {
-        'id':'python_l1','course_id':'python',
-        'title':'Python Basics — Kenyan Context',
-        'read_minutes':5,'progress':0.0,
-        'ai_summary':
-        'Python is readable and powerful. '
-            'Used at Safaricom, Andela, and Kenya\'s top universities for data analysis.',
-        'content':'''
-## Introduction to Python
-
-Python is one of the most readable programming languages.
-It is used extensively in **data analysis, AI, web backends, and automation**.
-
-### Why Python in Kenya
-- **Safaricom** uses Python for data pipeline analytics
-- **Andela** (major Kenya tech employer) tests Python in hiring
-- **KPLC** and **KenGen** use Python for energy data modelling
-- Python powers the machine learning models at iHub Nairobi
-
-### Hello World
-```python
-print("Habari, Kenya!")
-```
-
-### Variables
-```python
-county     = "Mombasa"        # str
-population = 1_208_333        # int (Mombasa county)
-gdp_usd    = 98.8e9           # float (Kenya GDP)
-is_eac     = True             # bool
-
-print(f"{county} population: {population:,}")
-```
-
-### M-Pesa transaction analysis
-```python
-transactions = [1500, 200, 45000, 300, 800, 12000, 950]
-
-total   = sum(transactions)
-average = total / len(transactions)
-highest = max(transactions)
-
-print(f"Total transactions: KES {total:,}")
-print(f"Average: KES {average:,.2f}")
-print(f"Highest: KES {highest:,}")
-```
-
-### Functions — county tax calculator
-```python
-def calculate_county_levy(business_type: str, revenue: float) -> float:
-    """Calculate Nairobi county single business permit fee."""
-    rates = {
-        "retail":      0.002,   # 0.2% of revenue
-        "restaurant":  0.003,
-        "tech":        0.001,
-        "matatu":      15000,   # flat rate KES
-    }
-    rate = rates.get(business_type, 0.002)
-    if isinstance(rate, float):
-        return max(revenue * rate, 5000)  # minimum KES 5,000
-    return rate
-
-print(f"Tech company levy: KES {calculate_county_levy('tech', 2_000_000):,}")
-print(f"Restaurant levy:   KES {calculate_county_levy('restaurant', 500_000):,}")
-```
-
-### Lists and loops — 47 counties
-```python
-counties = ["Nairobi", "Mombasa", "Kisumu", "Nakuru",
-            "Uasin Gishu", "Meru", "Kakamega", "Kilifi"]
-
-# Filter coastal counties
-coastal = [c for c in counties if c in ["Mombasa", "Kilifi", "Kwale", "Lamu"]]
-print(f"Coastal counties: {coastal}")
-
-# Enumerate with numbering
-for i, county in enumerate(counties, start=1):
-    print(f"{i}. {county}")
-```
-
-### Dictionaries — student registry
-```python
-student = {
-    "name":     "Kamau Njoroge",
-    "reg_no":   "BIT/2021/001",
-    "county":   "Kiambu",
-    "course":   "BIT4107",
-    "grade":    None,
-}
-
-# Add a grade
-student["grade"] = "A"
-
-# Destructure
-name, course = student["name"], student["course"]
-print(f"{name} is taking {course}")
-```
-
-> **Kenya project idea:** Use Python + pandas to analyse KNBS census data.
-> Plot population density per county using matplotlib.
-''',
-      },
-      {
-        'id':'python_l2','course_id':'python',
-        'title':'Python Data Analysis — KNBS Case Study',
-        'read_minutes':5,'progress':0.0,
-        'ai_summary':
-        'Python pandas and matplotlib are used to analyse '
-            'real Kenyan census and economic data from KNBS.',
-        'content':'''
-## Python Data Analysis — Kenya National Bureau of Statistics
-
-### Install libraries
-```bash
-pip install pandas matplotlib requests
-```
-
-### Analysing Kenya county populations (KNBS 2019 Census)
-```python
-import pandas as pd
-import matplotlib.pyplot as plt
-
-# Kenya top counties by population (KNBS 2019)
-data = {
-    "County":     ["Nairobi","Kiambu","Nakuru","Kakamega",
-                   "Bungoma","Meru","Kilifi","Machakos"],
-    "Population": [4_397_073, 2_417_735, 2_162_202, 1_867_579,
-                   1_670_570, 1_545_714, 1_453_787, 1_421_932],
-    "Area_km2":   [696, 2449, 7495, 3250, 3032, 6930, 12610, 5953],
-}
-
-df = pd.DataFrame(data)
-df["Density"] = (df["Population"] / df["Area_km2"]).round(1)
-
-print(df.sort_values("Density", ascending=False).to_string(index=False))
-```
-
-### Web scraping — KRA exchange rates
-```python
-import requests
-from datetime import date
-
-def get_kra_rate(currency: str = "USD") -> float:
-    """Fetch KRA daily exchange rate (for tax computations)."""
-    url = f"https://api.exchangerate-api.com/v4/latest/KES"
-    try:
-        res = requests.get(url, timeout=5)
-        rates = res.json()["rates"]
-        return round(1 / rates.get(currency, 1), 2)
-    except Exception:
-        return 129.50  # fallback rate
-
-usd_rate = get_kra_rate("USD")
-print(f"Today ({date.today()}) KRA Rate: 1 USD = KES {usd_rate}")
-```
-
-### File handling — M-Pesa statement parser
-```python
-import csv
-
-# Imagine an M-Pesa statement exported as CSV
-def parse_mpesa_statement(filepath: str) -> dict:
-    totals = {"sent": 0, "received": 0, "withdrawn": 0}
-    with open(filepath, newline="") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            txn_type = row.get("Type", "")
-            amount   = float(row.get("Amount", 0))
-            if "Sent"      in txn_type: totals["sent"]      += amount
-            elif "Received" in txn_type: totals["received"]  += amount
-            elif "Withdraw" in txn_type: totals["withdrawn"] += amount
-    return totals
-
-# summary = parse_mpesa_statement("statement.csv")
-# print(summary)
-```
-
-### OOP — Chama (investment group) management
-```python
-class Chama:
-    def __init__(self, name: str, members: list[str]):
-        self.name    = name
-        self.members = members
-        self.kitty   = 0.0
-
-    def contribute(self, member: str, amount: float):
-        if member not in self.members:
-            raise ValueError(f"{member} is not a member of {self.name}")
-        self.kitty += amount
-        print(f"{member} contributed KES {amount:,}. Kitty: KES {self.kitty:,}")
-
-    def lend(self, member: str, amount: float, interest: float = 0.10):
-        if amount > self.kitty:
-            raise ValueError("Insufficient funds in kitty")
-        self.kitty -= amount
-        repayment = amount * (1 + interest)
-        print(f"Loan: KES {amount:,} to {member}. Repay KES {repayment:,}")
-
-# Demo
-chama = Chama("Wekeza Pamoja", ["Wanjiku", "Otieno", "Kamau"])
-chama.contribute("Wanjiku", 5000)
-chama.contribute("Otieno",  5000)
-chama.lend("Kamau", 3000)
-```
-''',
-      },
-      {
-        'id':'networks_l1','course_id':'networks',
-        'title':'Computer Networks — Kenya Infrastructure',
-        'read_minutes':5,'progress':0.0,
-        'ai_summary':
-        'Networks connect computers. Kenya has the TEAMS and EASSy '
-            'undersea cables landing at Mombasa connecting Africa to the world.',
-        'content':'''
-## Computer Networks — Kenya Context
-
-### What is a computer network?
-A computer network is a group of interconnected devices that share
-resources and communicate using agreed protocols.
-
-### Kenya's internet infrastructure
-| Infrastructure | Detail |
-|---|---|
-| **TEAMS cable** | East Africa Marine System — lands at Mombasa; links Kenya to UAE |
-| **EASSy cable** | East Africa Submarine System — Mombasa to Europe via South Africa |
-| **SEACOM** | Mombasa to India and Europe — used by many ISPs |
-| **IXP Nairobi** | Kenya Internet Exchange Point — routes local traffic locally (faster) |
-| **KIXP** | Keeps Safaricom ↔ Airtel ↔ Telkom traffic within Kenya |
-
-### Network types
-```
-PAN  — Bluetooth between your phone and earbuds (range: ~10 m)
-LAN  — University computer lab (range: building)
-MAN  — Nairobi city fibre network (range: city)
-WAN  — Safaricom backbone connecting Nairobi to Kisumu (range: country)
-Internet — Global network connecting Kenya to the world
-```
-
-### OSI Model — with Kenya examples
-```
-Layer 7 — Application   → M-Pesa app, Chrome browser
-Layer 6 — Presentation  → SSL encryption on eCitizen (HTTPS)
-Layer 5 — Session       → Your login session on KRA iTax
-Layer 4 — Transport     → TCP (reliable) for web, UDP for M-Pesa USSD
-Layer 3 — Network       → IP address routing Nairobi → Mombasa
-Layer 2 — Data Link     → MAC addresses on Safaricom fibre switches
-Layer 1 — Physical      → TEAMS undersea cable fibre optic
-```
-
-### IP Addressing
-```
-IPv4 example:  197.248.1.5   (common in Kenya ISP allocations)
-Subnet mask:   255.255.255.0
-Gateway:       197.248.1.1   (your router)
-DNS:           8.8.8.8       (Google) or 1.1.1.1 (Cloudflare)
-
-CIDR notation: 197.248.1.0/24 — 254 usable hosts
-```
-
-### Safaricom network — how a call works
-```
-1. Your phone → Safaricom BTS tower (4G LTE signal)
-2. BTS → Safaricom BSC (Base Station Controller) via fibre
-3. BSC → Core network (Safaricom HQ, Westlands Nairobi)
-4. Core → Routes to recipient's network (Airtel, Telkom)
-5. Airtel BSC → Recipient's phone
-```
-
-> **Kenya fact:** As of 2024, Kenya has 39.8 million internet users
-> (KNBS) — 75% access via mobile. Safaricom holds 65% market share
-> making it East Africa's largest telco.
-''',
-      },
-      {
-        'id':'networks_l2','course_id':'networks',
-        'title':'TCP/IP, DNS & Security — Kenyan Cases',
-        'read_minutes':5,'progress':0.0,
-        'ai_summary':
-        'TCP/IP is the protocol suite powering the internet. '
-            'DNS translates names to IPs. HTTPS secures eCitizen and M-Pesa.',
-        'content':'''
-... (long content) ...
-''',
-      },
-      {
-        'id':'week9_l1','course_id':'week9',
-        'title':'Integrating Smartphone Hardware',
-        'read_minutes':6,'progress':0.0,
-        'ai_summary':
-        'Modern apps use hardware like Camera and GPS to solve real problems '
-            'like navigation (Uber) and authentication (Banking).',
-        'content':'''
-## Integrating Device Features
-
-Mobile apps have a huge advantage over desktop: **direct access to hardware**.
-
-### Key Hardware Examples
-- **Camera:** Photos, videos, QR scanning.
-- **GPS:** Location tracking, mapping.
-- **Sensors:** Accelerometer (motion), Gyroscope (rotation), Light sensor.
-- **Biometrics:** Fingerprint and Face ID for secure login.
-
-### Real-world applications
-- **Uber:** Uses GPS to connect drivers and riders.
-- **WhatsApp:** Uses Camera and Microphone for communication.
-- **Fitness apps:** Use Accelerometer to count steps.
-
-### Android Permissions
-Before accessing hardware, you **must** request permission from the user.
-1. **Camera permission**
-2. **Location permission** (Fine vs Coarse)
-3. **Microphone permission**
-
-### Camera Steps
-1. Request permission in `AndroidManifest.xml`.
-2. Request runtime permission.
-3. Launch camera via `image_picker`.
-4. Capture and display the image.
-
-### GPS Steps
-1. Request location permission.
-2. Enable GPS service.
-3. Obtain coordinates (Lat/Long) using `geolocator`.
-4. Display on map or text.
-
-> **Kenya Case Study:** Safaricom's M-Pesa app uses the **Camera** to scan 
-> "Lipa na M-Pesa" QR codes at shops, making payments faster than typing 
-> till numbers manually.
-''',
-      },
-      {
-        'id':'week10_l1','course_id':'week10',
-        'title':'Testing and User Experience',
-        'read_minutes':5,'progress':0.0,
-        'ai_summary':
-        'Integration testing ensures all parts (DB, UI, API) work together. '
-            'UX focus makes the app intuitive and responsive.',
-        'content':'''
-## Integration and Testing
-
-### 1. Application Integration
-This is where we connect all the pieces:
-- **UI + Navigation:** Moving between screens.
-- **Forms + Database:** Saving user input to SQLite.
-- **CRUD + UI:** Showing list items (RecyclerView/ListView) from DB.
-
-### 2. User Experience (UX)
-A great app must be:
-- **Consistent:** Same colors and icons throughout.
-- **Responsive:** Buttons should feel clickable.
-- **Informative:** Show loading indicators and clear error messages.
-
-### 3. Functional Testing
-Does the feature actually work?
-- Can a user register?
-- Does the camera open?
-- Does the search filter correctly?
-
-### 4. Non-functional Testing
-- **Performance:** Does it lag?
-- **Reliability:** Does it crash on low battery?
-- **Security:** Are passwords hashed?
-
-> **Final Review Checklist:**
-> - [ ] Screens connected?
-> - [ ] Data saves to SQLite?
-> - [ ] Camera/GPS works?
-> - [ ] No crashes?
-''',
-      },
-      {
-        'id':'week11_l1','course_id':'week11',
-        'title':'Deployment and Publishing',
-        'read_minutes':5,'progress':0.0,
-        'ai_summary':
-        'Preparing for release involves cleaning code, updating versions, '
-            'and choosing between APK (direct) or AAB (Play Store).',
-        'content':'''
-## Deployment and Publishing
-
-### 1. Preparing for Release
-- **Remove debug code:** Delete `print()` statements and test credentials.
-- **Update Version:** Increment `version` in `pubspec.yaml`.
-- **Assets:** Ensure you have a professional app icon and splash screen.
-
-### 2. APK vs AAB
-- **APK (Android Package):** Great for direct sharing (sideloading).
-- **AAB (Android App Bundle):** Required for the Google Play Store. It generates optimized APKs for different devices.
-
-### 3. Store Listing Requirements
-- **App Name & Descriptions:** Short and long versions.
-- **Screenshots:** Show off the app's best features.
-- **Privacy Policy:** Especially important if using Camera/GPS.
-
-### 4. Maintenance
-Deployment is not the end. You must:
-- Fix bugs reported by users.
-- Release security updates.
-- Add new features based on feedback.
-
-> **Project Pitch:** When presenting your app, focus on the **Problem** it 
-> solves, the **Hardware** it uses, and how it handles **Offline** data.
-''',
-      },
-    ];
-
+    final lessons = _buildLessons();
     for (final l in lessons) {
       await _db!.insert('lessons', l);
     }
@@ -927,74 +132,288 @@ Deployment is not the end. You must:
     await _db!.insert('user_progress', {'key':'quiz_avg','value':'82'});
   }
 
-  Future<bool> registerUser(
-      String name, String email, String password) async {
+  List<Map<String,dynamic>> _buildLessons() => [
+    {
+      'id':'week9_l1','course_id':'week9',
+      'title':'Device Features — Camera, GPS & Sensors',
+      'read_minutes':5,'progress':0.0,
+      'ai_summary':'Smartphones have hardware (camera, GPS, sensors) that apps can access. Always request runtime permissions first. Use image_picker for camera and geolocator for GPS in Flutter.',
+      'content':'''## Device Features Integration
+
+Modern smartphones contain hardware apps can access directly.
+
+### Common device features
+
+| Feature | Purpose | Kenya example |
+|---|---|---|
+| Camera | Photos/video/scan | M-Pesa ID scanning during KYC |
+| GPS | Location | Bolt/Uber driver tracking |
+| Accelerometer | Movement | Safaricom fitness app step counter |
+| Gyroscope | Rotation | Game tilt controls |
+| Fingerprint | Authentication | KCB mobile banking login |
+| NFC | Contactless | Matatu card tap payment |
+
+### Android Permissions
+
+Add to `android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<uses-permission android:name="android.permission.CAMERA"/>
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+<uses-permission android:name="android.permission.RECORD_AUDIO"/>
+```
+
+### Camera in Flutter
+
+```dart
+import 'package:image_picker/image_picker.dart';
+
+final picker = ImagePicker();
+final file = await picker.pickImage(source: ImageSource.camera);
+if (file != null) {
+  setState(() => _image = File(file.path));
+}
+```
+
+### GPS in Flutter
+
+```dart
+import 'package:geolocator/geolocator.dart';
+
+final pos = await Geolocator.getCurrentPosition(
+  desiredAccuracy: LocationAccuracy.high,
+);
+print("Nairobi: lat=\${pos.latitude}, lng=\${pos.longitude}");
+```
+
+### Sensors in Flutter
+
+```dart
+import 'package:sensors_plus/sensors_plus.dart';
+
+accelerometerEventStream().listen((AccelerometerEvent e) {
+  print("X=\${e.x} Y=\${e.y} Z=\${e.z}");
+});
+```
+
+> **Kenya case study:** eCitizen uses camera to scan Huduma Namba cards. Bolt uses GPS + accelerometer to detect trips and calculate fares. MPESA uses fingerprint/face biometrics for authentication.
+''',
+    },
+    {
+      'id':'week10_l1','course_id':'week10',
+      'title':'Integration, Testing & Debugging',
+      'read_minutes':5,'progress':0.0,
+      'ai_summary':'Integration connects all app features together. Test each screen, button, and database operation. Use Flutter DevTools and print() for debugging.',
+      'content':'''## Integration and Testing
+
+### Integration Checklist
+
+Before testing, confirm all parts of your app are connected:
+
+```
+✓ Screens are reachable via navigation routes
+✓ Forms validate and submit data
+✓ SQLite reads and writes correctly
+✓ Camera and GPS permissions granted
+✓ API calls have error handling
+✓ Dark mode works across all screens
+```
+
+### Functional Testing
+
+Test each feature works correctly:
+
+| Feature | Test | Expected result |
+|---|---|---|
+| Login | Enter valid credentials | Navigates to dashboard |
+| Register | Enter new email | Saved to SQLite users table |
+| CRUD | Add a module | Appears in list immediately |
+| Camera | Tap capture button | Photo saved to app storage |
+| GPS | Tap get location | Shows Nairobi coordinates |
+| Search | Type module name | List filters in real time |
+
+### Non-functional Testing
+
+| Test type | What to check |
+|---|---|
+| Performance | App opens in under 3 seconds |
+| Reliability | App does not crash on bad input |
+| Security | Passwords not in plain text |
+| Usability | All buttons are tappable |
+| Compatibility | Works on API 21+ |
+
+### Common Bugs & Fixes
+
+```dart
+// Bug: MissingPluginException on image_picker
+// Fix: flutter clean && flutter run
+
+// Bug: Location permission denied crash
+// Fix: Check permission before calling Geolocator
+LocationPermission perm = await Geolocator.checkPermission();
+if (perm == LocationPermission.denied) {
+  perm = await Geolocator.requestPermission();
+}
+
+// Bug: SQLite column not found
+// Fix: Delete app data to force _onCreate to re-run
+// Settings → Apps → LearnAI → Clear Data
+```
+
+> **Best practice:** Always test on a physical Android device, not just the emulator. GPS and camera behave differently on real hardware.
+''',
+    },
+    {
+      'id':'week11_l1','course_id':'week11',
+      'title':'APK Build & Play Store Deployment',
+      'read_minutes':5,'progress':0.0,
+      'ai_summary':'Build a release APK with flutter build apk --release. For Play Store use AAB format. Always remove debug code, add a proper icon, and set the correct app name first.',
+      'content':'''## Deployment — APK & Play Store
+
+### Before building
+
+```yaml
+# pubspec.yaml
+version: 1.0.0+1   # version name + build number
+```
+
+```xml
+<!-- AndroidManifest.xml -->
+android:label="LearnAI"   <!-- app name on home screen -->
+```
+
+### Build APK (direct install)
+
+```bash
+# Debug APK (for testing)
+flutter build apk --debug
+
+# Release APK (for distribution)
+flutter build apk --release
+
+# Output: build/app/outputs/flutter-apk/app-release.apk
+```
+
+### Build AAB (Google Play Store)
+
+```bash
+flutter build appbundle --release
+# Output: build/app/outputs/bundle/release/app-release.aab
+```
+
+### App Icon
+
+```yaml
+# pubspec.yaml dev_dependencies
+flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/images/learnai_logo.png"
+  adaptive_icon_background: "#1D9E75"
+```
+
+```bash
+dart run flutter_launcher_icons
+flutter clean && flutter run
+```
+
+### Play Store Requirements
+
+| Requirement | LearnAI value |
+|---|---|
+| App name | LearnAI |
+| Short description | Offline AI learning for mobile dev students |
+| Icon | 512×512 PNG |
+| Screenshots | At least 2 phone screenshots |
+| Privacy policy | Required if using camera/GPS |
+| Category | Education |
+
+> **Kenya context:** Google Play Store accepts M-Pesa as a payment method for app purchases, making it the primary distribution channel for Kenyan developers.
+''',
+    },
+  ];
+
+  Future<bool> registerUser(String name, String email, String password) async {
     try {
       await _db!.insert('users', {
-        'name':       name,
-        'email':      email,
-        'password':   password,
-        'level':      0,
+        'name': name,
+        'email': email,
+        'password': password,
+        'level': 0,
         'created_at': DateTime.now().toIso8601String(),
       });
-      await logActivity(email, 'REGISTER', 'New account created');
+      await logActivity(email, 'REGISTER', 'Account created');
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  Future<Map<String, dynamic>?> loginUser(
-      String email, String password) async {
+  Future<Map<String,dynamic>?> loginUser(String email, String password) async {
     final rows = await _db!.query('users',
         where: 'email = ? AND password = ?',
-        whereArgs: [email, password],
-        limit: 1);
+        whereArgs: [email, password], limit: 1);
     if (rows.isEmpty) return null;
     await logActivity(email, 'LOGIN', 'Signed in');
     return rows.first;
   }
 
-  Future<List<Map<String, dynamic>>> getAllUsers() =>
+  Future<List<Map<String,dynamic>>> getAllUsers() =>
       _db!.query('users', orderBy: 'created_at DESC');
 
-  Future<void> logActivity(
-      String email, String action, [String? detail]) =>
+  Future<bool> updateUser(String email, Map<String,dynamic> fields) async {
+    try {
+      await _db!.update('users', fields,
+          where: 'email = ?', whereArgs: [email]);
+      await logActivity(email, 'UPDATE', 'Profile updated');
+      return true;
+    } catch (_) { return false; }
+  }
+
+  Future<void> deleteUser(String email) async {
+    await _db!.delete('users', where: 'email = ?', whereArgs: [email]);
+    await _db!.delete('user_activity', where: 'user_email = ?', whereArgs: [email]);
+    await _db!.delete('quiz_attempts', where: 'user_email = ?', whereArgs: [email]);
+  }
+
+  Future<Map<String,dynamic>?> getUserByEmail(String email) async {
+    final rows = await _db!.query('users',
+        where: 'email = ?', whereArgs: [email], limit: 1);
+    return rows.isEmpty ? null : rows.first;
+  }
+
+  Future<void> saveAvatarPath(String email, String path) =>
+      _db!.update('users', {'avatar_path': path},
+          where: 'email = ?', whereArgs: [email]);
+
+  Future<void> saveFaceIdPath(String email, String path) =>
+      _db!.update('users', {'face_id_path': path},
+          where: 'email = ?', whereArgs: [email]);
+
+  Future<void> logActivity(String email, String action, [String? detail]) =>
       _db!.insert('user_activity', {
-        'user_email':  email,
-        'action':      action,
-        'detail':      detail,
+        'user_email': email,
+        'action': action,
+        'detail': detail,
         'occurred_at': DateTime.now().toIso8601String(),
       });
 
-  Future<List<Map<String, dynamic>>> getUserActivity(
-      String email, {int limit = 20}) =>
+  Future<List<Map<String,dynamic>>> getUserActivity(String email, {int limit = 30}) =>
       _db!.query('user_activity',
-          where: 'user_email = ?',
-          whereArgs: [email],
-          orderBy: 'occurred_at DESC',
-          limit: limit);
-
-  Future<List<Map<String, dynamic>>> getAllActivity({int limit = 50}) =>
-      _db!.rawQuery(
-          '''SELECT ua.*, u.name as user_name
-           FROM user_activity ua
-           LEFT JOIN users u ON ua.user_email = u.email
-           ORDER BY ua.occurred_at DESC
-           LIMIT ?''',
-          [limit]);
+          where: 'user_email = ?', whereArgs: [email],
+          orderBy: 'occurred_at DESC', limit: limit);
 
   Future<List<Course>> getCourses() async {
     final rows = await _db!.query('courses', orderBy: 'id ASC');
     return rows.map(Course.fromMap).toList();
   }
 
-  Future<int> insertCourse(Course c) => _db!.insert(
-      'courses', c.toMap(),
+  Future<int> insertCourse(Course c) => _db!.insert('courses', c.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace);
 
-  Future<void> updateCourse(Course c) => _db!.update(
-      'courses', c.toMap(), where: 'id = ?', whereArgs: [c.id]);
+  Future<void> updateCourse(Course c) => _db!.update('courses', c.toMap(),
+      where: 'id = ?', whereArgs: [c.id]);
 
   Future<void> deleteCourse(String id) =>
       _db!.delete('courses', where: 'id = ?', whereArgs: [id]);
@@ -1012,40 +431,102 @@ Deployment is not the end. You must:
         progress: (r['progress'] as num).toDouble());
   }
 
+  Future<List<Map<String,dynamic>>> getAllLessons() =>
+      _db!.rawQuery('''SELECT l.*, c.title as course_title
+        FROM lessons l JOIN courses c ON l.course_id = c.id
+        ORDER BY l.course_id, l.id''');
+
+  Future<void> updateLesson(String id, Map<String,dynamic> fields) =>
+      _db!.update('lessons', fields, where: 'id = ?', whereArgs: [id]);
+
+  Future<void> deleteLesson(String id) =>
+      _db!.delete('lessons', where: 'id = ?', whereArgs: [id]);
+
   Future<void> saveProgress(String lessonId, double progress) =>
       _db!.update('lessons', {'progress': progress},
           where: 'id = ?', whereArgs: [lessonId]);
 
-  Future<void> saveQuizAttempt(
-      String lessonId, int score, String email) =>
+  Future<void> saveQuizAttempt(String lessonId, int score, String email) =>
       _db!.insert('quiz_attempts', {
-        'lesson_id':    lessonId,
-        'user_email':   email,
-        'score':        score,
-        'attempted_at': DateTime.now().toIso8601String(),
+        'lesson_id': lessonId, 'user_email': email,
+        'score': score, 'attempted_at': DateTime.now().toIso8601String(),
       });
 
-  Future<List<Map<String, dynamic>>> getQuizHistory(String email) =>
-      _db!.rawQuery(
-          '''SELECT qa.*, l.title as lesson_title
-           FROM quiz_attempts qa
-           LEFT JOIN lessons l ON qa.lesson_id = l.id
-           WHERE qa.user_email = ?
-           ORDER BY qa.attempted_at DESC''',
-          [email]);
+  Future<List<Map<String,dynamic>>> getQuizHistory(String email) =>
+      _db!.rawQuery('''SELECT qa.*, l.title as lesson_title, c.title as course_title
+        FROM quiz_attempts qa
+        LEFT JOIN lessons l ON qa.lesson_id = l.id
+        LEFT JOIN courses c ON l.course_id = c.id
+        WHERE qa.user_email = ?
+        ORDER BY qa.attempted_at DESC''', [email]);
 
   Future<void> deleteQuizAttempt(int id) =>
       _db!.delete('quiz_attempts', where: 'id = ?', whereArgs: [id]);
 
-  Future<Map<String, String>> getUserProgress() async {
+  Future<Map<String,String>> getUserProgress() async {
     final rows = await _db!.query('user_progress');
-    return {for (final r in rows)
-      r['key'] as String: r['value'] as String};
+    return {for (final r in rows) r['key'] as String: r['value'] as String};
   }
 
   Future<void> setUserProgress(String key, String value) =>
       _db!.insert('user_progress', {'key': key, 'value': value},
           conflictAlgorithm: ConflictAlgorithm.replace);
+
+  Future<Map<String,dynamic>> getUserStats(String email) async {
+    final attempts = await _db!.rawQuery(
+        'SELECT COUNT(*) as total, SUM(score) as correct FROM quiz_attempts WHERE user_email = ?',
+        [email]);
+    final lessonsDone = await _db!.rawQuery(
+        'SELECT COUNT(*) as cnt FROM lessons WHERE progress >= 1.0');
+    final lastActivity = await _db!.query('user_activity',
+        where: 'user_email = ?', whereArgs: [email],
+        orderBy: 'occurred_at DESC', limit: 1);
+    final total   = (attempts.first['total']   as int?) ?? 0;
+    final correct = (attempts.first['correct'] as int?) ?? 0;
+    final avg     = total > 0 ? (correct / total * 100).round() : 0;
+    final done    = (lessonsDone.first['cnt'] as int?) ?? 0;
+    final last    = lastActivity.isNotEmpty ? lastActivity.first['occurred_at'] as String : '';
+    return {'quiz_total': total, 'quiz_avg': avg, 'lessons_done': done, 'last_active': last};
+  }
+
+  Future<int> saveCapturedDocument(String email, String imagePath,
+      String title, String docType) async {
+    return _db!.insert('captured_documents', {
+      'user_email': email, 'image_path': imagePath,
+      'title': title, 'doc_type': docType,
+      'captured_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String,dynamic>>> getCapturedDocuments(String email) =>
+      _db!.query('captured_documents',
+          where: 'user_email = ?', whereArgs: [email],
+          orderBy: 'captured_at DESC');
+
+  Future<void> deleteCapturedDocument(int id) =>
+      _db!.delete('captured_documents', where: 'id = ?', whereArgs: [id]);
+
+  Future<void> insertRagDocument(Map<String,dynamic> doc) =>
+      _db!.insert('rag_documents', doc, conflictAlgorithm: ConflictAlgorithm.replace);
+
+  Future<void> insertRagChunk(Map<String,dynamic> chunk) =>
+      _db!.insert('rag_chunks', chunk, conflictAlgorithm: ConflictAlgorithm.replace);
+
+  Future<List<Map<String,dynamic>>> getRagChunks(String docId) =>
+      _db!.query('rag_chunks', where: 'doc_id = ?', whereArgs: [docId]);
+
+  Future<List<Map<String,dynamic>>> getAllRagChunks() =>
+      _db!.query('rag_chunks');
+
+  Future<List<Map<String,dynamic>>> getRagDocuments(String email) =>
+      _db!.query('rag_documents',
+          where: 'user_email = ?', whereArgs: [email],
+          orderBy: 'created_at DESC');
+
+  Future<void> deleteRagDocument(String docId) async {
+    await _db!.delete('rag_documents', where: 'id = ?', whereArgs: [docId]);
+    await _db!.delete('rag_chunks', where: 'doc_id = ?', whereArgs: [docId]);
+  }
 
   Future<void> clearAllQuizHistory(String email) =>
       _db!.delete('quiz_attempts', where: 'user_email = ?', whereArgs: [email]);

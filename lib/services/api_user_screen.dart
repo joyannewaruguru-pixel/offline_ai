@@ -139,10 +139,10 @@ class _ApiUsersState extends State<ApiUsersScreen> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           color: _greenLight,
-          child: Row(children: [
+          child: Row(children: const [
             _MethodBadge('GET',    _green),
-            const SizedBox(width: 6),
-            const Expanded(
+            SizedBox(width: 6),
+            Expanded(
                 child: Text('https://jsonplaceholder.typicode.com/users',
                     style: TextStyle(fontSize: 10,
                         color: _greenDark, fontFamily: 'monospace'),
@@ -237,7 +237,7 @@ class _ApiUsersState extends State<ApiUsersScreen> {
                 decoration: BoxDecoration(
                     color: _errLight,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _error.withOpacity(0.3))),
+                    border: Border.all(color: _error.withValues(alpha: 0.3))),
                 child: Column(children: [
                   const Icon(Icons.cloud_off_rounded,
                       color: _error, size: 40),
@@ -423,7 +423,7 @@ class _UserCard extends StatelessWidget {
                       color: const Color(0xFFF0FAF6),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: const Color(0xFF1D9E75).withOpacity(0.2))),
+                          color: const Color(0xFF1D9E75).withValues(alpha: 0.2))),
                   child: Text(pretty,
                       style: const TextStyle(
                           fontFamily: 'monospace',

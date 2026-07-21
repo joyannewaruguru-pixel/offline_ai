@@ -1,39 +1,22 @@
-/// GestureService — Week 8 OOP class-based gesture and keyboard event handler.
-///
-/// Mirrors the lecturer's Python class structure in Dart/Flutter:
-///   class GestureHandler  → onTap(), onSwipe(), onLongPress()
-///   class KeyboardController → onKeyInput(), validateInput()
-///   class EventLogger      → log(), getHistory()
-///
-/// All events are logged to SQLite via DBService fo
-
 import '../../db_service.dart';
+import 'db_service.dart';
 
 class InputEvent {
-  final String type;      // TAP, SWIPE_LEFT, SWIPE_RIGHT, LONG_PRESS, KEY_INPUT
-  final String message;   // human-readable description
+  final String   type;
+  final String   message;
   final DateTime time;
 
-  InputEvent({
-    required this.type,
-    required this.message,
-    required this.time,
-  });
+  InputEvent({required this.type, required this.message, required this.time});
 }
 
 class EventLogger {
   final List<InputEvent> _history = [];
 
-  List<InputEvent> getHistory() => List.unmodifiable(_history.reversed.toList());
+  List<InputEvent> getHistory() =>
+      List.unmodifiable(_history.reversed.toList());
 
-  /// Logs an event to memory and optionally to the database.
   Future<void> log(String type, String message, String userEmail) async {
-    _history.add(InputEvent(
-      type:    type,
-      message: message,
-      time:    DateTime.now(),
-    ));
-    // Persist to SQLite — provides logbook evidence
+    _history.add(InputEvent(type: type, message: message, time: DateTime.now()));
     await DBService.instance.logActivity(userEmail, type, message);
   }
 
@@ -45,7 +28,7 @@ class GestureHandler {
   final String      _userEmail;
 
   GestureHandler({required EventLogger logger, required String userEmail})
-      : _logger = logger,
+      : _logger    = logger,
         _userEmail = userEmail;
 
   Future<String> onTap(String target) async {
@@ -55,19 +38,19 @@ class GestureHandler {
   }
 
   Future<String> onSwipeLeft(String target) async {
-    final msg = 'Swipe left on: $target → Previous / Delete';
+    final msg = 'Swipe left on: $target';
     await _logger.log('SWIPE_LEFT', msg, _userEmail);
     return msg;
   }
 
   Future<String> onSwipeRight(String target) async {
-    final msg = 'Swipe right on: $target → Next page';
+    final msg = 'Swipe right on: $target';
     await _logger.log('SWIPE_RIGHT', msg, _userEmail);
     return msg;
   }
 
   Future<String> onLongPress(String target) async {
-    final msg = 'Long press on: $target → Context menu displayed';
+    final msg = 'Long press on: $target';
     await _logger.log('LONG_PRESS', msg, _userEmail);
     return msg;
   }
@@ -78,19 +61,19 @@ class KeyboardController {
   final String      _userEmail;
 
   KeyboardController({required EventLogger logger, required String userEmail})
-      : _logger = logger,
+      : _logger    = logger,
         _userEmail = userEmail;
 
   Future<void> onKeyInput(String text) async {
     if (text.isEmpty) return;
-    await _logger.log('KEY_INPUT', 'Input received: "$text"', _userEmail);
+    await _logger.log('KEY_INPUT', 'Input: "$text"', _userEmail);
   }
 
   String? validateInput(String value) {
-    if (value.trim().isEmpty) return 'Input cannot be empty';
-    if (value.trim().length < 3) return 'Input too short (minimum 3 characters)';
-    if (value.trim().length > 100) return 'Input too long (maximum 100 characters)';
-    return null; // null = valid
+    if (value.trim().isEmpty)   return 'Input cannot be empty';
+    if (value.trim().length < 3) return 'Input too short (min 3 characters)';
+    if (value.trim().length > 100) return 'Input too long (max 100 characters)';
+    return null;
   }
 
   Future<String> onSubmit(String text) async {
@@ -99,24 +82,25 @@ class KeyboardController {
       await _logger.log('VALIDATION_FAIL', 'Submit failed: $error', _userEmail);
       return 'Error: $error';
     }
-    await _logger.log('FORM_SUBMIT', 'Form submitted: "$text"', _userEmail);
+    await _logger.log('FORM_SUBMIT', 'Submitted: "$text"', _userEmail);
     return 'Form submitted successfully: "$text"';
   }
 }
 
 class MobileApp {
-  final EventLogger       logger;
-  final GestureHandler    gestureHandler;
+  final EventLogger        logger;
+  final GestureHandler     gestureHandler;
   final KeyboardController keyboardController;
 
   MobileApp({required String userEmail})
-      : logger           = EventLogger(),
-        gestureHandler   = GestureHandler(
-            logger:     EventLogger(), userEmail: userEmail),
+      : logger             = EventLogger(),
+        gestureHandler     = GestureHandler(
+            logger: EventLogger(), userEmail: userEmail),
         keyboardController = KeyboardController(
-            logger:     EventLogger(), userEmail: userEmail);
+            logger: EventLogger(), userEmail: userEmail);
 
   static MobileApp? _instance;
+
   static MobileApp getInstance(String userEmail) {
     _instance ??= MobileApp(userEmail: userEmail);
     return _instance!;

@@ -8,16 +8,22 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingState extends State<OnboardingScreen> {
-  int    _level       = -1;
-  double _dlProgress  = 0;
+  int    _level      = -1;
+  double _dlProgress = 0;
   bool   _downloading = false;
   bool   _done        = false;
 
   static const _levels = [
-    {'icon': Icons.school_outlined,          'title': 'Beginner',      'desc': 'Start from the basics'},
-    {'icon': Icons.code_outlined,            'title': 'Intermediate',  'desc': 'I know some programming'},
-    {'icon': Icons.rocket_launch_outlined,   'title': 'Advanced',      'desc': 'Final year or professional'},
+    {'icon': Icons.school_outlined,        'title': 'Beginner',     'desc': 'Start from the basics'},
+    {'icon': Icons.code_outlined,          'title': 'Intermediate', 'desc': 'I know some programming'},
+    {'icon': Icons.rocket_launch_outlined, 'title': 'Advanced',     'desc': 'Final year or professional'},
   ];
+
+  static const _green      = Color(0xFF1D9E75);
+  static const _greenLight = Color(0xFFE1F5EE);
+  static const _greenDark  = Color(0xFF0F6E56);
+  static const _muted      = Color(0xFF6B7280);
+  static const _bg         = Color(0xFFF6F8F7);
 
   Future<void> _download() async {
     setState(() => _downloading = true);
@@ -37,34 +43,27 @@ class _OnboardingState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const green      = Color(0xFF1D9E75);
-    const greenLight = Color(0xFFE1F5EE);
-    const greenDark  = Color(0xFF0F6E56);
-    const border     = Color(0xFFE5E7EB);
-    const bg         = Color(0xFFF6F8F7);
-    const muted      = Color(0xFF6B7280);
-
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: _bg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Center(child: Column(children: [
               Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                    color: green, borderRadius: BorderRadius.circular(20)),
-                child: const Icon(Icons.psychology_rounded,
-                    color: Colors.white, size: 38),
-              ),
+                  width: 72, height: 72,
+                  decoration: BoxDecoration(
+                      color: _green,
+                      borderRadius: BorderRadius.circular(20)),
+                  child: const Icon(Icons.psychology_rounded,
+                      color: Colors.white, size: 38)),
               const SizedBox(height: 14),
               const Text('LearnAI',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700,
-                      color: green)),
+                      color: _green)),
               const SizedBox(height: 4),
               const Text('Offline AI Learning Platform',
-                  style: TextStyle(fontSize: 13, color: muted)),
+                  style: TextStyle(fontSize: 13, color: _muted)),
             ])),
             const SizedBox(height: 36),
 
@@ -76,45 +75,40 @@ class _OnboardingState extends State<OnboardingScreen> {
               final sel  = _level == i;
               final item = _levels[i];
               return GestureDetector(
-                onTap: () => setState(() => _level = i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: sel ? greenLight : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: sel ? green : border,
-                        width: sel ? 1.5 : 1),
-                  ),
-                  child: Row(children: [
-                    Container(
-                      width: 44, height: 44,
+                  onTap: () => setState(() => _level = i),
+                  child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                          color: sel ? green : bg,
-                          borderRadius: BorderRadius.circular(10)),
-                      child: Icon(item['icon'] as IconData,
-                          color: sel ? Colors.white : muted, size: 22),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item['title'] as String,
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14,
-                                color: sel ? greenDark : Colors.black87)),
-                        const SizedBox(height: 2),
-                        Text(item['desc'] as String,
-                            style: const TextStyle(fontSize: 12, color: muted)),
-                      ],
-                    )),
-                    if (sel)
-                      const Icon(Icons.check_circle_rounded, color: green),
-                  ]),
-                ),
-              );
+                          color: sel ? _greenLight : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: sel ? _green : const Color(0xFFE5E7EB),
+                              width: sel ? 1.5 : 1)),
+                      child: Row(children: [
+                        Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                                color: sel ? _green : _bg,
+                                borderRadius: BorderRadius.circular(10)),
+                            child: Icon(item['icon'] as IconData,
+                                color: sel ? Colors.white : _muted, size: 22)),
+                        const SizedBox(width: 14),
+                        Expanded(child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item['title'] as String,
+                                  style: TextStyle(fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: sel ? _greenDark : Colors.black87)),
+                              const SizedBox(height: 2),
+                              Text(item['desc'] as String,
+                                  style: const TextStyle(fontSize: 12, color: _muted)),
+                            ])),
+                        if (sel)
+                          const Icon(Icons.check_circle_rounded, color: _green),
+                      ])));
             }),
 
             if (_level >= 0) ...[
@@ -123,93 +117,80 @@ class _OnboardingState extends State<OnboardingScreen> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: greenLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: green.withValues(alpha: 0.3)),
-                ),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      const Icon(Icons.folder_zip_outlined, color: green),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                          child: Text('BIT4107 Mobile Dev Pack — 120 MB',
-                              style: TextStyle(fontSize: 13,
-                                  fontWeight: FontWeight.w500, color: greenDark))),
-                      if (_done)
-                        const Icon(Icons.check_circle_rounded,
-                            color: green, size: 20),
-                    ]),
-                    if (_downloading || _done) ...[
-                      const SizedBox(height: 10),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: _dlProgress, minHeight: 6,
-                          backgroundColor: green.withValues(alpha: 0.15),
-                          valueColor:
-                          const AlwaysStoppedAnimation<Color>(green),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                          _done
-                              ? 'Download complete!'
-                              : '${(_dlProgress * 120).toStringAsFixed(0)} MB / 120 MB',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: _done ? green : greenDark)),
-                    ],
-                  ],
-                ),
-              ),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                      color: _greenLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _green.withValues(alpha: 0.3))),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          const Icon(Icons.folder_zip_outlined, color: _green),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                              child: Text('BIT4107 Mobile Dev Pack — 120 MB',
+                                  style: TextStyle(fontSize: 13,
+                                      fontWeight: FontWeight.w500, color: _greenDark))),
+                          if (_done)
+                            const Icon(Icons.check_circle_rounded,
+                                color: _green, size: 20),
+                        ]),
+                        if (_downloading || _done) ...[
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                  value: _dlProgress, minHeight: 6,
+                                  backgroundColor: _green.withValues(alpha: 0.15),
+                                  valueColor: const AlwaysStoppedAnimation(_green))),
+                          const SizedBox(height: 6),
+                          Text(
+                              _done
+                                  ? 'Download complete!'
+                                  : '${(_dlProgress * 120).toStringAsFixed(0)} MB / 120 MB',
+                              style: TextStyle(
+                                  fontSize: 12, color: _done ? _green : _greenDark)),
+                        ],
+                      ])),
               const SizedBox(height: 14),
               if (!_done)
-                ElevatedButton.icon(
-                  onPressed: _downloading ? null : _download,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: green,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  icon: _downloading
-                      ? const SizedBox(width: 16, height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.download_rounded),
-                  label: Text(_downloading
-                      ? 'Downloading...' : 'Download for offline use'),
-                ),
+                SizedBox(
+                    width: double.infinity, height: 50,
+                    child: ElevatedButton.icon(
+                        onPressed: _downloading ? null : _download,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: _green, foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12))),
+                        icon: _downloading
+                            ? const SizedBox(width: 16, height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.download_rounded),
+                        label: Text(_downloading
+                            ? 'Downloading...' : 'Download for offline use'))),
               if (_done) ...[
-                ElevatedButton(
-                  onPressed: _proceed,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: green, foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Get started →'),
-                ),
+                SizedBox(
+                    width: double.infinity, height: 50,
+                    child: ElevatedButton(
+                        onPressed: _proceed,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: _green, foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12))),
+                        child: const Text('Get started →'))),
                 const SizedBox(height: 10),
               ],
             ],
-
             const SizedBox(height: 8),
             Center(
-              child: TextButton(
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/login'),
-                child: const Text('Skip for now',
-                    style: TextStyle(color: muted)),
-              ),
-            ),
+                child: TextButton(
+                    onPressed: () =>
+                        Navigator.pushReplacementNamed(context, '/login'),
+                    child: const Text('Skip for now',
+                        style: TextStyle(color: _muted)))),
           ]),
         ),
       ),

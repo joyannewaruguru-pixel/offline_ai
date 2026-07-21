@@ -1,439 +1,531 @@
 import 'package:flutter/material.dart';
-import '../course_model.dart';
+import 'package:provider/provider.dart';
+import '../auth_service.dart';
 import '../db_service.dart';
+import '../services/auth_service.dart';
+import '../services/db_service.dart';
 
-/// Week 4 assignment — demonstrates full CRUD on the courses table.
-/// Add a new module, edit its title/subtitle, delete it,
-/// and search the list. All changes persist in SQLite.
 class CrudScreen extends StatefulWidget {
   const CrudScreen({super.key});
   @override
   State<CrudScreen> createState() => _CrudState();
 }
 
-class _CrudState extends State<CrudScreen> {
-  // ── colours ──────────────────────────────────────────────────────────────
+class _CrudState extends State<CrudScreen> with SingleTickerProviderStateMixin {
   static const _green      = Color(0xFF1D9E75);
   static const _greenLight = Color(0xFFE1F5EE);
   static const _greenDark  = Color(0xFF0F6E56);
-  static const _border     = Color(0xFFE5E7EB);
-  static const _muted      = Color(0xFF6B7280);
+  static const _blue       = Color(0xFF1565C0);
+  static const _blueLight  = Color(0xFFE3F2FD);
   static const _error      = Color(0xFFE24B4A);
   static const _errLight   = Color(0xFFFCEBEB);
-  static const _bg         = Color(0xFFF6F8F7);
+  static const _muted      = Color(0xFF6B7280);
 
-  // ── state ────────────────────────────────────────────────────────────────
-  List<Course> _all      = [];
-  List<Course> _filtered = [];
-  bool   _loading = true;
-  final  _search  = TextEditingController();
-
-  @override
-  void initState() { super.initState(); _load(); }
+  late TabController _tabs;
+  List<Map<String,dynamic>> _users    = [];
+  List<Map<String,dynamic>> _lessons  = [];
+  List<Map<String,dynamic>> _progress = [];
+  bool _loading = true;
 
   @override
-  void dispose() { _search.dispose(); super.dispose(); }
-
-  // ── data helpers ──────────────────────────────────────────────────────────
-
-  /// READ — loads all courses from SQLite.
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    final courses = await DBService.instance.getCourses();
-    if (mounted) {
-      setState(() {
-        _all      = courses;
-        _filtered = courses;
-        _loading  = false;
-      });
-      _onSearch(_search.text);
-    }
+  void initState() {
+    super.initState();
+    _tabs = TabController(length: 3, vsync: this);
+    _load();
   }
 
-  /// Filters the list as the user types in the search bar.
-  void _onSearch(String q) {
-    final query = q.toLowerCase().trim();
-    setState(() {
-      _filtered = query.isEmpty
-          ? _all
-          : _all.where((c) =>
-      c.title.toLowerCase().contains(query) ||
-          c.subtitle.toLowerCase().contains(query)).toList();
+  @override
+  void dispose() { _tabs.dispose(); super.dispose(); }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final email = context.read<AuthService>().email;
+    final users    = await DBService.instance.getAllUsers();
+    final lessons  = await DBService.instance.getAllLessons();
+    final progress = await DBService.instance.getQuizHistory(email);
+    if (mounted) setState(() {
+      _users = users; _lessons = lessons; _progress = progress;
+      _loading = false;
     });
   }
 
-  // ── CRUD dialogs ──────────────────────────────────────────────────────────
-
-  /// Shows the Add / Edit form dialog.
-  Future<void> _showForm({Course? editing}) async {
-    final titleCtrl    = TextEditingController(text: editing?.title    ?? '');
-    final subtitleCtrl = TextEditingController(text: editing?.subtitle ?? '');
-    final formKey      = GlobalKey<FormState>();
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: Text(
-            editing == null ? 'Add new module' : 'Edit module',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        content: Form(
-          key: formKey,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            // Title field
-            TextFormField(
-              controller: titleCtrl,
-              textCapitalization: TextCapitalization.words,
-              decoration: _fieldDec('Module title', Icons.book_outlined),
-              validator: (v) =>
-              (v == null || v.trim().isEmpty) ? 'Title is required' : null,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-            ),
-            const SizedBox(height: 14),
-            // Subtitle field
-            TextFormField(
-              controller: subtitleCtrl,
-              decoration: _fieldDec(
-                  'Subtitle (e.g. Week 6 · 3 lessons)',
-                  Icons.subtitles_outlined),
-              validator: (v) =>
-              (v == null || v.trim().isEmpty) ? 'Subtitle is required' : null,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
-            ),
-          ]),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel',
-                  style: TextStyle(color: _muted))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _green,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-
-              if (editing == null) {
-                // CREATE — insert new course
-                final newCourse = Course(
-                  id:       'custom_${DateTime.now().millisecondsSinceEpoch}',
-                  title:    titleCtrl.text.trim(),
-                  subtitle: subtitleCtrl.text.trim(),
-                  progress: 0,
-                  icon:     Icons.menu_book_outlined,
-                );
-                await DBService.instance.insertCourse(newCourse);
-                _showSnack('Module added ✓');
-              } else {
-                // UPDATE — save edited fields
-                final updated = editing.copyWith(
-                  title:    titleCtrl.text.trim(),
-                  subtitle: subtitleCtrl.text.trim(),
-                );
-                await DBService.instance.updateCourse(updated);
-                _showSnack('Module updated ✓');
-              }
-
-              if (ctx.mounted) Navigator.pop(ctx);
-              await _load(); // refresh list
-            },
-            child: Text(editing == null ? 'Add' : 'Save'),
-          ),
-        ],
-      ),
-    );
-    titleCtrl.dispose();
-    subtitleCtrl.dispose();
-  }
-
-  /// Confirms then deletes a course.
-  Future<void> _confirmDelete(Course c) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete module?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-        content: Text(
-            'This will permanently delete "${c.title}" from the database.',
-            style: const TextStyle(fontSize: 13)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: _muted))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _error,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      // DELETE — remove from SQLite
-      await DBService.instance.deleteCourse(c.id);
-      _showSnack('Module deleted');
-      await _load();
-    }
-  }
-
-  void _showSnack(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: _green,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      duration: const Duration(seconds: 2),
-    ));
-  }
-
-  // ── build ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: _green,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Module Manager',
-                style: TextStyle(color: Colors.white, fontSize: 16)),
-            Text('Week 4 — SQLite CRUD',
-                style: TextStyle(color: Colors.white70, fontSize: 10)),
+        title: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Data Manager', style: TextStyle(color: Colors.white, fontSize: 15)),
+          Text('CRUD — Users · Lessons · Progress',
+              style: TextStyle(color: Colors.white70, fontSize: 10)),
+        ]),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _load),
+        ],
+        bottom: TabBar(
+          controller: _tabs,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white60,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          tabs: const [
+            Tab(icon: Icon(Icons.people_outline,   size: 16), text: 'Users'),
+            Tab(icon: Icon(Icons.book_outlined,    size: 16), text: 'Lessons'),
+            Tab(icon: Icon(Icons.bar_chart_outlined,size: 16), text: 'Progress'),
           ],
         ),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              tooltip: 'Refresh',
-              onPressed: _load),
-        ],
       ),
-
-      // ── FAB — add new module ────────────────────────────────────────────
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: _green,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Add module'),
-        onPressed: () => _showForm(),
-      ),
-
-      body: Column(children: [
-        // ── CRUD operation legend ───────────────────────────────────────
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: _greenLight,
-          child: Row(children: [
-            _OpBadge('C', _green),      const SizedBox(width: 4),
-            _OpBadge('R', Colors.blue), const SizedBox(width: 4),
-            _OpBadge('U', Colors.orange),const SizedBox(width: 4),
-            _OpBadge('D', _error),      const SizedBox(width: 10),
-            const Text('Tap card to Edit · Long-press to Delete',
-                style: TextStyle(fontSize: 11, color: _greenDark)),
-          ]),
-        ),
-
-        // ── Search bar ──────────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: TextField(
-            controller: _search,
-            onChanged: _onSearch,
-            decoration: InputDecoration(
-              hintText: 'Search modules…',
-              hintStyle: const TextStyle(fontSize: 13, color: _muted),
-              prefixIcon: const Icon(Icons.search, color: _muted, size: 20),
-              suffixIcon: _search.text.isNotEmpty
-                  ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18, color: _muted),
-                  onPressed: () { _search.clear(); _onSearch(''); })
-                  : null,
-              filled: true, fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _border)),
-              enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _border)),
-              focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: _green, width: 1.5)),
-              isDense: true,
-            ),
-          ),
-        ),
-
-        // ── Record count ────────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
-          child: Row(children: [
-            Text('${_filtered.length} of ${_all.length} modules',
-                style: const TextStyle(fontSize: 12, color: _muted)),
-          ]),
-        ),
-
-        // ── List ────────────────────────────────────────────────────────
-        Expanded(child: _buildList()),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: _green))
+          : TabBarView(controller: _tabs, children: [
+        _UsersTab(users: _users, isDark: isDark, onRefresh: _load),
+        _LessonsTab(lessons: _lessons, isDark: isDark, onRefresh: _load),
+        _ProgressTab(progress: _progress, isDark: isDark, onRefresh: _load),
       ]),
     );
   }
+}
 
-  Widget _buildList() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator(
-          color: Color(0xFF1D9E75)));
-    }
-    if (_filtered.isEmpty) {
-      return Center(child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.inbox_outlined, size: 48, color: _muted),
-          const SizedBox(height: 12),
-          Text(
-              _search.text.isNotEmpty
-                  ? 'No results for "${_search.text}"'
-                  : 'No modules yet. Tap + to add one.',
-              style: const TextStyle(color: _muted, fontSize: 13)),
+class _UsersTab extends StatefulWidget {
+  final List<Map<String,dynamic>> users;
+  final bool isDark;
+  final VoidCallback onRefresh;
+  const _UsersTab({required this.users, required this.isDark, required this.onRefresh});
+  @override
+  State<_UsersTab> createState() => _UsersTabState();
+}
+
+class _UsersTabState extends State<_UsersTab> {
+  static const _green      = Color(0xFF1D9E75);
+  static const _greenLight = Color(0xFFE1F5EE);
+  static const _error      = Color(0xFFE24B4A);
+  static const _errLight   = Color(0xFFFCEBEB);
+  static const _muted      = Color(0xFF6B7280);
+
+  String _search = '';
+
+  Future<void> _showEditDialog(Map<String,dynamic>? user) async {
+    final nameCtrl  = TextEditingController(text: user?['name'] as String? ?? '');
+    final emailCtrl = TextEditingController(text: user?['email'] as String? ?? '');
+    final passCtrl  = TextEditingController();
+    final formKey   = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(user == null ? 'Add user' : 'Edit user',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        content: Form(key: formKey, child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextFormField(controller: nameCtrl,
+              decoration: const InputDecoration(labelText: 'Full name', isDense: true),
+              validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+          const SizedBox(height: 10),
+          TextFormField(controller: emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(labelText: 'Email', isDense: true),
+              validator: (v) => v == null || !v.contains('@') ? 'Invalid email' : null),
+          const SizedBox(height: 10),
+          if (user == null)
+            TextFormField(controller: passCtrl, obscureText: true,
+                decoration: const InputDecoration(labelText: 'Password', isDense: true),
+                validator: (v) => v == null || v.length < 6 ? 'Min 6 chars' : null),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: _muted))),
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: _green,
+                  foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                if (user == null) {
+                  await DBService.instance.registerUser(
+                      nameCtrl.text.trim(), emailCtrl.text.trim(), passCtrl.text);
+                } else {
+                  await DBService.instance.updateUser(
+                      user['email'] as String,
+                      {'name': nameCtrl.text.trim(), 'email': emailCtrl.text.trim()});
+                }
+                if (ctx.mounted) Navigator.pop(ctx);
+                widget.onRefresh();
+              },
+              child: Text(user == null ? 'Add' : 'Save')),
         ],
-      ));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 100),
-      itemCount: _filtered.length,
-      itemBuilder: (ctx, i) {
-        final c    = _filtered[i];
-        final done = c.progress >= 1.0;
-        return Dismissible(
-          // Swipe left to delete
-          key: Key(c.id),
-          direction: DismissDirection.endToStart,
-          background: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
-            margin: const EdgeInsets.only(bottom: 10),
-            decoration: BoxDecoration(
-                color: _errLight,
-                borderRadius: BorderRadius.circular(14)),
-            child: const Icon(Icons.delete_outline, color: _error),
-          ),
-          confirmDismiss: (_) async {
-            await _confirmDelete(c);
-            return false; // we handle reload ourselves
-          },
-          child: GestureDetector(
-            // Tap → edit
-            onTap: () => _showForm(editing: c),
-            // Long press → delete confirmation
-            onLongPress: () => _confirmDelete(c),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                      color: (!done && c.progress > 0)
-                          ? const Color(0xFF1D9E75).withOpacity(0.3)
-                          : const Color(0xFFE5E7EB))),
-              child: Row(children: [
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(
-                      color: done
-                          ? const Color(0xFF1D9E75)
-                          : const Color(0xFFE1F5EE),
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Icon(c.icon,
-                      color: done ? Colors.white : const Color(0xFF1D9E75),
-                      size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(c.title,
-                        style: const TextStyle(fontWeight: FontWeight.w500)),
-                    Text(c.subtitle,
-                        style: const TextStyle(
-                            fontSize: 12, color: _muted)),
-                  ],
-                )),
-                // Edit icon
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      color: _green, size: 18),
-                  onPressed: () => _showForm(editing: c),
-                  tooltip: 'Edit',
-                ),
-                // Delete icon
-                IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      color: _error, size: 18),
-                  onPressed: () => _confirmDelete(c),
-                  tooltip: 'Delete',
-                ),
-              ]),
-            ),
-          ),
-        );
-      },
+      ),
     );
+    nameCtrl.dispose(); emailCtrl.dispose(); passCtrl.dispose();
   }
 
-  InputDecoration _fieldDec(String hint, IconData icon) => InputDecoration(
-    hintText: hint,
-    hintStyle: const TextStyle(color: _muted, fontSize: 13),
-    prefixIcon: Icon(icon, size: 18, color: _muted),
-    filled: true, fillColor: Colors.white,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-    border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _border)),
-    enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _border)),
-    focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _green, width: 1.5)),
-    errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _error)),
-  );
+  Future<void> _confirmDelete(Map<String,dynamic> user) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete user?',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        content: Text('Delete "${user['name']}"? This also removes their activity and quiz history.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: _muted))),
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: _error,
+                  foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await DBService.instance.deleteUser(user['email'] as String);
+      widget.onRefresh();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.users.where((u) =>
+    _search.isEmpty ||
+        (u['name'] as String).toLowerCase().contains(_search) ||
+        (u['email'] as String).toLowerCase().contains(_search)).toList();
+
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16,12,16,4),
+        child: TextField(
+          onChanged: (v) => setState(() => _search = v.toLowerCase()),
+          decoration: _searchDec('Search users…'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(children: [
+          Text('${filtered.length} users', style: const TextStyle(fontSize: 12, color: _muted)),
+        ]),
+      ),
+      Expanded(
+        child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16,4,16,80),
+            itemCount: filtered.length,
+            itemBuilder: (ctx, i) {
+              final u    = filtered[i];
+              final name = u['name'] as String;
+              final email= u['email'] as String;
+              return Dismissible(
+                  key: Key('u-$email'),
+                  direction: DismissDirection.endToStart,
+                  background: _deleteBg(),
+                  confirmDismiss: (_) async { await _confirmDelete(u); return false; },
+                  child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                          color: widget.isDark ? const Color(0xFF1C1F26) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE5E7EB))),
+                      child: ListTile(
+                        leading: CircleAvatar(backgroundColor: _greenLight,
+                            child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                style: const TextStyle(color: _green, fontWeight: FontWeight.w600))),
+                        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                        subtitle: Text(email, style: const TextStyle(fontSize: 12, color: _muted)),
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          IconButton(icon: const Icon(Icons.edit_outlined, color: _green, size: 18),
+                              onPressed: () => _showEditDialog(u)),
+                          IconButton(icon: const Icon(Icons.delete_outline, color: _error, size: 18),
+                              onPressed: () => _confirmDelete(u)),
+                        ]),
+                      )));
+            }),
+      ),
+      Padding(
+          padding: const EdgeInsets.fromLTRB(16,0,16,16),
+          child: SizedBox(width: double.infinity, height: 46,
+              child: ElevatedButton.icon(
+                  onPressed: () => _showEditDialog(null),
+                  style: ElevatedButton.styleFrom(backgroundColor: _green,
+                      foregroundColor: Colors.white, elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  icon: const Icon(Icons.person_add_outlined),
+                  label: const Text('Add user')))),
+    ]);
+  }
 }
 
-class _OpBadge extends StatelessWidget {
-  final String label;
-  final Color  color;
-  const _OpBadge(this.label, this.color);
+class _LessonsTab extends StatefulWidget {
+  final List<Map<String,dynamic>> lessons;
+  final bool isDark;
+  final VoidCallback onRefresh;
+  const _LessonsTab({required this.lessons, required this.isDark, required this.onRefresh});
   @override
-  Widget build(BuildContext context) => Container(
-    width: 22, height: 22,
-    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    child: Center(child: Text(label,
-        style: const TextStyle(color: Colors.white,
-            fontSize: 10, fontWeight: FontWeight.w700))),
-  );
+  State<_LessonsTab> createState() => _LessonsTabState();
 }
+
+class _LessonsTabState extends State<_LessonsTab> {
+  static const _green      = Color(0xFF1D9E75);
+  static const _greenLight = Color(0xFFE1F5EE);
+  static const _error      = Color(0xFFE24B4A);
+  static const _muted      = Color(0xFF6B7280);
+  String _search = '';
+
+  Future<void> _showEditDialog(Map<String,dynamic> lesson) async {
+    final titleCtrl = TextEditingController(text: lesson['title'] as String? ?? '');
+    final summCtrl  = TextEditingController(text: lesson['ai_summary'] as String? ?? '');
+    final formKey   = GlobalKey<FormState>();
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Edit lesson',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        content: Form(key: formKey, child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextFormField(controller: titleCtrl,
+              decoration: const InputDecoration(labelText: 'Title', isDense: true),
+              validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+          const SizedBox(height: 10),
+          TextFormField(controller: summCtrl, maxLines: 3,
+              decoration: const InputDecoration(labelText: 'AI Summary', isDense: true)),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: _muted))),
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: _green,
+                  foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                await DBService.instance.updateLesson(lesson['id'] as String,
+                    {'title': titleCtrl.text.trim(), 'ai_summary': summCtrl.text.trim()});
+                if (ctx.mounted) Navigator.pop(ctx);
+                widget.onRefresh();
+              },
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    titleCtrl.dispose(); summCtrl.dispose();
+  }
+
+  Future<void> _confirmDelete(Map<String,dynamic> lesson) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete lesson?',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        content: Text('Delete "${lesson['title']}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: _muted))),
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: _error,
+                  foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await DBService.instance.deleteLesson(lesson['id'] as String);
+      widget.onRefresh();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.lessons.where((l) =>
+    _search.isEmpty ||
+        (l['title'] as String).toLowerCase().contains(_search) ||
+        (l['course_title'] as String? ?? '').toLowerCase().contains(_search)).toList();
+
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16,12,16,4),
+        child: TextField(
+          onChanged: (v) => setState(() => _search = v.toLowerCase()),
+          decoration: _searchDec('Search lessons…'),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(children: [
+          Text('${filtered.length} lessons', style: const TextStyle(fontSize: 12, color: _muted)),
+        ]),
+      ),
+      Expanded(
+        child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16,4,16,80),
+            itemCount: filtered.length,
+            itemBuilder: (ctx, i) {
+              final l    = filtered[i];
+              final prog = (l['progress'] as num).toDouble();
+              return Dismissible(
+                  key: Key('l-${l['id']}'),
+                  direction: DismissDirection.endToStart,
+                  background: _deleteBg(),
+                  confirmDismiss: (_) async { await _confirmDelete(l); return false; },
+                  child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                          color: widget.isDark ? const Color(0xFF1C1F26) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE5E7EB))),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(color: _greenLight,
+                                  borderRadius: BorderRadius.circular(6)),
+                              child: Text(l['course_title'] as String? ?? '',
+                                  style: const TextStyle(fontSize: 9, color: Color(0xFF0F6E56),
+                                      fontWeight: FontWeight.w500))),
+                          const Spacer(),
+                          IconButton(icon: const Icon(Icons.edit_outlined, color: _green, size: 18),
+                              onPressed: () => _showEditDialog(l), padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints()),
+                          const SizedBox(width: 8),
+                          IconButton(icon: const Icon(Icons.delete_outline, color: _error, size: 18),
+                              onPressed: () => _confirmDelete(l), padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints()),
+                        ]),
+                        const SizedBox(height: 6),
+                        Text(l['title'] as String,
+                            style: const TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 2),
+                        Text('${l['read_minutes']} min · ${(prog*100).toStringAsFixed(0)}% done',
+                            style: const TextStyle(fontSize: 11, color: _muted)),
+                        const SizedBox(height: 8),
+                        ClipRRect(borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(value: prog, minHeight: 4,
+                                backgroundColor: _greenLight,
+                                valueColor: const AlwaysStoppedAnimation(_green))),
+                      ])));
+            }),
+      ),
+    ]);
+  }
+}
+
+class _ProgressTab extends StatelessWidget {
+  final List<Map<String,dynamic>> progress;
+  final bool isDark;
+  final VoidCallback onRefresh;
+  const _ProgressTab({required this.progress, required this.isDark, required this.onRefresh});
+
+  static const _green      = Color(0xFF1D9E75);
+  static const _greenLight = Color(0xFFE1F5EE);
+  static const _error      = Color(0xFFE24B4A);
+  static const _errLight   = Color(0xFFFCEBEB);
+  static const _muted      = Color(0xFF6B7280);
+
+  String _fmt(String iso) {
+    final dt = DateTime.tryParse(iso) ?? DateTime.now();
+    const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${months[dt.month]} ${dt.day}  ${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (progress.isEmpty) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.bar_chart_outlined, size: 48, color: Colors.grey[400]),
+        const SizedBox(height: 8),
+        const Text('No quiz progress yet', style: TextStyle(color: _muted)),
+      ]));
+    }
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(children: [
+          Text('${progress.length} quiz attempts',
+              style: const TextStyle(fontSize: 12, color: _muted)),
+          const Spacer(),
+          TextButton.icon(
+              icon: const Icon(Icons.delete_sweep_outlined, size: 16, color: _muted),
+              label: const Text('Clear all', style: TextStyle(fontSize: 12, color: _muted)),
+              onPressed: () async {
+                for (final p in progress) {
+                  await DBService.instance.deleteQuizAttempt(p['id'] as int);
+                }
+                onRefresh();
+              }),
+        ]),
+      ),
+      Expanded(
+        child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16,0,16,80),
+            itemCount: progress.length,
+            itemBuilder: (ctx, i) {
+              final p       = progress[i];
+              final correct = (p['score'] as int) == 1;
+              return Dismissible(
+                  key: Key('p-${p['id']}'),
+                  direction: DismissDirection.endToStart,
+                  background: _deleteBg(),
+                  onDismissed: (_) async {
+                    await DBService.instance.deleteQuizAttempt(p['id'] as int);
+                    onRefresh();
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1C1F26) : Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: correct ? _green.withOpacity(0.3) : _error.withOpacity(0.3))),
+                      child: Row(children: [
+                        Icon(correct ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                            color: correct ? _green : _error, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(p['lesson_title'] as String? ?? 'Quiz',
+                                  style: const TextStyle(fontWeight: FontWeight.w500)),
+                              Text(p['course_title'] as String? ?? '',
+                                  style: const TextStyle(fontSize: 11, color: _muted)),
+                              Text(_fmt(p['attempted_at'] as String),
+                                  style: const TextStyle(fontSize: 10, color: _muted)),
+                            ])),
+                        Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                                color: correct ? _greenLight : _errLight,
+                                borderRadius: BorderRadius.circular(12)),
+                            child: Text(correct ? 'Correct' : 'Wrong',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                                    color: correct ? _green : _error))),
+                      ])));
+            }),
+      ),
+    ]);
+  }
+}
+
+InputDecoration _searchDec(String hint) => InputDecoration(
+    hintText: hint,
+    prefixIcon: const Icon(Icons.search, size: 20),
+    isDense: true,
+    filled: true,
+    fillColor: Colors.white,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF1D9E75), width: 1.5)));
+
+Widget _deleteBg() => Container(
+    alignment: Alignment.centerRight,
+    padding: const EdgeInsets.only(right: 20),
+    margin: const EdgeInsets.only(bottom: 10),
+    decoration: BoxDecoration(
+        color: const Color(0xFFFCEBEB),
+        borderRadius: BorderRadius.circular(14)),
+    child: const Icon(Icons.delete_outline, color: Color(0xFFE24B4A)));

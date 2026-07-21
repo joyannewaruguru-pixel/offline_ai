@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Manages light/dark theme state across the entire app.
-/// Access via [ThemeService.instance] or use with Provider.
 class ThemeService extends ChangeNotifier {
   ThemeService._();
   static final ThemeService instance = ThemeService._();
@@ -10,6 +8,10 @@ class ThemeService extends ChangeNotifier {
   bool _isDark = false;
   bool get isDark => _isDark;
   ThemeMode get themeMode => _isDark ? ThemeMode.dark : ThemeMode.light;
+
+  static const primaryGreen = Color(0xFF1D9E23);
+  static const primaryLight = Color(0xFFE1E6F5);
+  static const primaryDark  = Color(0xFF650F6E);
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -24,12 +26,6 @@ class ThemeService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Brand colours ─────────────────────────────────────────────────────────
-  static const primaryGreen  = Color(0xFF1D9E75);
-  static const primaryLight  = Color(0xFFE1F5EE);
-  static const primaryDark   = Color(0xFF0F6E56);
-
-  // ── Light theme ───────────────────────────────────────────────────────────
   static ThemeData light() => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
@@ -42,8 +38,7 @@ class ThemeService extends ChangeNotifier {
         foregroundColor: Colors.white,
         elevation: 0,
         titleTextStyle: TextStyle(
-            color: Colors.white, fontSize: 16,
-            fontWeight: FontWeight.w500)),
+            color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
     navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         indicatorColor: primaryLight,
@@ -51,10 +46,8 @@ class ThemeService extends ChangeNotifier {
             const TextStyle(fontSize: 11, fontWeight: FontWeight.w500))),
     elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-            backgroundColor: primaryGreen,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
-            elevation: 0,
+            backgroundColor: primaryGreen, foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 50), elevation: 0,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)))),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -65,32 +58,24 @@ class ThemeService extends ChangeNotifier {
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)))),
     inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        filled: true, fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: primaryGreen, width: 1.5)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE24B4A)))),
     switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-                (s) => s.contains(WidgetState.selected)
-                ? primaryGreen : Colors.grey),
+                (s) => s.contains(WidgetState.selected) ? primaryGreen : Colors.grey),
         trackColor: WidgetStateProperty.resolveWith(
                 (s) => s.contains(WidgetState.selected)
                 ? primaryLight : Colors.grey.shade300)),
   );
 
-  // ── Dark theme ────────────────────────────────────────────────────────────
   static ThemeData dark() => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
@@ -103,19 +88,16 @@ class ThemeService extends ChangeNotifier {
         foregroundColor: Colors.white,
         elevation: 0,
         titleTextStyle: TextStyle(
-            color: Colors.white, fontSize: 16,
-            fontWeight: FontWeight.w500)),
+            color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
     navigationBarTheme: NavigationBarThemeData(
         backgroundColor: const Color(0xFF161920),
-        indicatorColor: primaryGreen.withOpacity(0.25),
+        indicatorColor: Color(0xFF1D9E75),
         labelTextStyle: WidgetStateProperty.all(
             const TextStyle(fontSize: 11, fontWeight: FontWeight.w500))),
     elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-            backgroundColor: primaryGreen,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
-            elevation: 0,
+            backgroundColor: primaryGreen, foregroundColor: Colors.white,
+            minimumSize: const Size(double.infinity, 50), elevation: 0,
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)))),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -126,26 +108,19 @@ class ThemeService extends ChangeNotifier {
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12)))),
     inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: const Color(0xFF1C1F26),
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        filled: true, fillColor: const Color(0xFF1C1F26),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF2C2F3A))),
-        enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF2C2F3A))),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: primaryGreen, width: 1.5)),
-        errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE24B4A)))),
     switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-                (s) => s.contains(WidgetState.selected)
-                ? primaryGreen : Colors.grey),
+                (s) => s.contains(WidgetState.selected) ? primaryGreen : Colors.grey),
         trackColor: WidgetStateProperty.resolveWith(
                 (s) => s.contains(WidgetState.selected)
                 ? primaryGreen.withOpacity(0.3) : Colors.grey.shade800)),

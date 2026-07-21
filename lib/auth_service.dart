@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'db_service.dart';
 
-/// Manages authentication state using SQLite for credential storage
-/// and SharedPreferences for session persistence.
+String hashPassword(String plain) {
+  final bytes = utf8.encode(plain);
+  return sha256.convert(bytes).toString();
+}
+
 class AuthService extends ChangeNotifier {
   String? _email;
   String? _userName;
@@ -16,7 +21,6 @@ class AuthService extends ChangeNotifier {
 
   AuthService() { _restore(); }
 
-  /// Restores session from SharedPreferences on app restart.
   Future<void> _restore() async {
     final prefs = await SharedPreferences.getInstance();
     _email     = prefs.getString('user_email');
@@ -25,38 +29,31 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Registers a new user in SQLite. Returns null on success,
-  /// or an error message string on failure.
-  Future<String?> register(
-      String name, String email, String password) async {
-    if (name.trim().isEmpty)     return 'Name is required';
-    if (!email.contains('@'))    return 'Invalid email address';
-    if (password.length < 6)     return 'Password must be at least 6 characters';
+  Future<String?> register(String name, String email, String password) async {
+    if (name.trim().isEmpty)  return 'Name is required';
+    if (!email.contains('@')) return 'Invalid email address';
+    if (password.length < 6)  return 'Password must be at least 6 characters';
 
     final ok = await DBService.instance.registerUser(
-        name.trim(), email.trim().toLowerCase(), password);
+        name.trim(), email.trim().toLowerCase(), hashPassword(password));
     if (!ok) return 'Email already registered. Please sign in.';
 
-    // Auto-login after register
     await _saveSession(name.trim(), email.trim().toLowerCase());
-    return null; // null = success
+    return null;
   }
 
-  /// Validates credentials against SQLite users table.
-  /// Returns null on success or an error message string.
   Future<String?> login(String email, String password) async {
     if (email.isEmpty)    return 'Email is required';
     if (password.isEmpty) return 'Password is required';
 
     final user = await DBService.instance.loginUser(
-        email.trim().toLowerCase(), password);
+        email.trim().toLowerCase(), hashPassword(password));
     if (user == null) return 'Incorrect email or password';
 
     await _saveSession(user['name'] as String, email.trim().toLowerCase());
     return null;
   }
 
-  /// Saves the session to SharedPreferences so it persists on restart.
   Future<void> _saveSession(String name, String email) async {
     _userName  = name;
     _email     = email;
@@ -68,7 +65,6 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Allows the app to be used without an account.
   Future<void> continueOffline() async {
     _isOffline = true;
     _email     = 'guest@offline';
@@ -78,7 +74,6 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Logs the current user out and clears the session.
   Future<void> logout() async {
     if (_email != null && !_isOffline) {
       await DBService.instance.logActivity(_email!, 'LOGOUT', 'Signed out');

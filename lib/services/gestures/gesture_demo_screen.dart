@@ -111,10 +111,10 @@ class _GestureDemoState extends State<GestureDemoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ClassBadge('MobileApp',        _green),
-                  _ClassBadge('GestureHandler',   _blue),
-                  _ClassBadge('KeyboardController',_purple),
-                  _ClassBadge('EventLogger',      _amber),
+              const _ClassBadge('MobileApp',        _green),
+              const _ClassBadge('GestureHandler',   _blue),
+              const _ClassBadge('KeyboardController',_purple),
+              const _ClassBadge('EventLogger',      _amber),
                   const SizedBox(height: 4),
                   Text(
                       'Each class handles one responsibility — '
@@ -136,7 +136,7 @@ class _GestureDemoState extends State<GestureDemoScreen> {
                   color: _messageBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: _messageColor.withOpacity(0.3))),
+                      color: _messageColor.withValues(alpha: 0.3))),
               child: Row(children: [
                 Icon(Icons.info_outline, color: _messageColor, size: 18),
                 const SizedBox(width: 8),
@@ -185,6 +185,7 @@ class _GestureDemoState extends State<GestureDemoScreen> {
               onLongPress: () async {
                 final msg = await _gestureHandler.onLongPress('Module row');
                 _show(msg, _purpleLight, _purple);
+                if (!mounted) return;
                 _showContextMenu(context);
               },
               child: Container(
@@ -194,7 +195,7 @@ class _GestureDemoState extends State<GestureDemoScreen> {
                       color: isDark ? const Color(0xFF1C1F26) : Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                          color: _purple.withOpacity(0.3))),
+                          color: _purple.withValues(alpha: 0.3))),
                   child: Row(children: [
                     Container(
                         width: 44, height: 44,
@@ -264,7 +265,7 @@ class _GestureDemoState extends State<GestureDemoScreen> {
                           color: isDark ? const Color(0xFF1C1F26) : Colors.white,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                              color: _amber.withOpacity(0.3))),
+                              color: _amber.withValues(alpha: 0.3))),
                       child: Row(children: [
                         Container(
                             width: 44, height: 44,
@@ -327,11 +328,11 @@ class _GestureDemoState extends State<GestureDemoScreen> {
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                              color: _green.withOpacity(0.4))),
+                              color: _green.withValues(alpha: 0.4))),
                       enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                              color: _green.withOpacity(0.3))),
+                              color: _green.withValues(alpha: 0.3))),
                       focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
@@ -586,7 +587,7 @@ class _SectionCard extends StatelessWidget {
         decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1C1F26) : lightColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.3))),
+            border: Border.all(color: color.withValues(alpha: 0.3))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Icon(icon, color: color, size: 16),
@@ -612,9 +613,9 @@ class _ClassBadge extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 5),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.withOpacity(0.3))),
+            border: Border.all(color: color.withValues(alpha: 0.3))),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(Icons.code, color: color, size: 12),
           const SizedBox(width: 5),
@@ -650,7 +651,7 @@ class _GestureCard extends StatelessWidget {
             decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF1C1F26) : Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: color.withOpacity(0.3))),
+                border: Border.all(color: color.withValues(alpha: 0.3))),
             child: Column(children: [
               Container(
                   width: 44, height: 44,
@@ -711,7 +712,7 @@ class _EventTile extends StatelessWidget {
         leading: Container(
             width: 32, height: 32,
             decoration: BoxDecoration(
-                color: c.withOpacity(0.1), shape: BoxShape.circle),
+                color: c.withValues(alpha: 0.1), shape: BoxShape.circle),
             child: Icon(_iconForType(event.type), color: c, size: 16)),
         title: Text(event.message,
             style: const TextStyle(fontSize: 12),
@@ -721,7 +722,7 @@ class _EventTile extends StatelessWidget {
           Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                  color: c.withOpacity(0.1),
+                  color: c.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6)),
               child: Text(event.type,
                   style: TextStyle(
